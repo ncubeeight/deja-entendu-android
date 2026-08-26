@@ -2,9 +2,31 @@
 
 Ported from the [iOS repo's roadmap](https://github.com/ncubeeight/deja-entendu/blob/main/ROADMAP.md) — the product direction is shared across both platforms, even though the codebases are separate. iOS-specific implementation notes below have been reworded for Android; nothing here has been built yet on either platform.
 
-## Feature parity with iOS (the actual first milestone)
+## Feature parity with iOS (the actual first milestone) — done
 
-Before either idea below applies, this repo needs the core pipeline iOS already has: audio import, on-device transcription (`SpeechRecognizer`), and on-device study notes. See the README's framework-mapping table and the AICore/ML Kit GenAI caveat before assuming 1:1 parity is possible.
+Status as of 2026-08-26 — the full milestone is built and device-verified
+live on a real Pixel 10 Pro: on-device LLM (study notes/word gloss/
+flashcard generators), file-based transcription (decode + resample + ML
+Kit GenAI Speech Recognition), Vocabulary List / Add Word / Flashcard
+screens, the Upload screen (SAF file picker + language-select sheet), the
+Home screen (port of iOS's `HomeSummaryView`), and the bottom-tab
+navigation shell. See the README's "On-device LLM" and "File-based
+transcription" sections for exactly what was verified and the bugs that
+surfaced along the way — several only showed up once tested against a
+real, realistic-length recording rather than a short synthetic clip.
+
+**Deliberately deferred**, not part of this milestone: a Settings tab
+(language filter / theme — `AppSettings.swift` on iOS), and an Android
+equivalent of iOS's Share Extension (share text/audio into the app from
+another app, e.g. Translate or Voice Memos).
+
+The transcription pipeline was first proven against a synthesized test
+clip (macOS `say -v Thomas -o clip.aiff "..."` piped through
+`afconvert -f m4af -d aac clip.aiff clip.m4a`), then against a real
+~25-minute recording pulled from Google Drive via the actual Upload
+screen's file picker — the real recording is what surfaced the ANR and
+OOM bugs documented in the README, since the short synthetic clip decoded
+too fast to trip either one.
 
 ## Full-transcript translation view
 
