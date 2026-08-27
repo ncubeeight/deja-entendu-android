@@ -1,0 +1,2 @@
+#### This app was assembled leveraging Google's Android Studio and Anthropic Claude Code.
+It is designed to use local bundled foundation models on the user's device to manage speech-to-text, text-from-image, text translation between two LLM-supported languages on the user's own device and generate flashcards locally based off user input media assets. No LLMs are included in the app download itself. 
