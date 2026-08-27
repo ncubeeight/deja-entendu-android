@@ -15,8 +15,12 @@ transcription" sections for exactly what was verified and the bugs that
 surfaced along the way — several only showed up once tested against a
 real, realistic-length recording rather than a short synthetic clip.
 
-**Deliberately deferred**, not part of this milestone: a Settings tab
-(language filter / theme — `AppSettings.swift` on iOS), and an Android
+**Settings tab added 2026-08-26** (language filter + System/Light/Dark
+theme, mirroring iOS's `AppSettings.swift`/`SettingsView.swift`) — see the
+README's "Settings implementation notes" for the dark-theme scope decision
+and a real dark-on-dark contrast bug caught by testing.
+
+**Deliberately deferred**, still not part of this milestone: an Android
 equivalent of iOS's Share Extension (share text/audio into the app from
 another app, e.g. Translate or Voice Memos).
 

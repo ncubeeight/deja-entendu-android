@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.ncubeeight.dejaentendu.audio.AudioIngestion
 import com.ncubeeight.dejaentendu.audio.ImportedRecording
 import com.ncubeeight.dejaentendu.audio.ImportedRecordingStore
+import com.ncubeeight.dejaentendu.settings.AppSettingsStore
 import com.ncubeeight.dejaentendu.transcription.SupportedLanguage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -64,11 +65,19 @@ fun UploadScreen(onRecordingClick: (ImportedRecording) -> Unit) {
     val context = LocalContext.current
     var recordings by remember { mutableStateOf(ImportedRecordingStore.load(context)) }
     var isLanguageSheetVisible by remember { mutableStateOf(false) }
-    var pendingLanguage by remember { mutableStateOf(SupportedLanguage.entries.first()) }
+    // Only languages enabled in Settings show up here, mirroring iOS's
+    // VoiceMemoImportView.swift enabledLanguages filter.
+    var enabledLanguages by remember {
+        mutableStateOf(SupportedLanguage.entries.filter { it in AppSettingsStore.enabledLanguages(context) })
+    }
+    var pendingLanguage by remember { mutableStateOf(enabledLanguages.first()) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    OnResume { recordings = ImportedRecordingStore.load(context) }
+    OnResume {
+        recordings = ImportedRecordingStore.load(context)
+        enabledLanguages = SupportedLanguage.entries.filter { it in AppSettingsStore.enabledLanguages(context) }
+    }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments()
@@ -107,7 +116,10 @@ fun UploadScreen(onRecordingClick: (ImportedRecording) -> Unit) {
     Scaffold(
         topBar = { TopAppBar(title = { Text("Audio Samples") }) },
         floatingActionButton = {
-            FloatingActionButton(onClick = { isLanguageSheetVisible = true }) {
+            FloatingActionButton(onClick = {
+                if (pendingLanguage !in enabledLanguages) pendingLanguage = enabledLanguages.first()
+                isLanguageSheetVisible = true
+            }) {
                 Icon(Icons.Filled.Add, contentDescription = "Import from Files")
             }
         },
@@ -145,7 +157,7 @@ fun UploadScreen(onRecordingClick: (ImportedRecording) -> Unit) {
         ModalBottomSheet(onDismissRequest = { isLanguageSheetVisible = false }, sheetState = sheetState) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text("What language is this recording in?")
-                for (language in SupportedLanguage.entries) {
+                for (language in enabledLanguages) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()

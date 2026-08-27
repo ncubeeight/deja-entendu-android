@@ -1,6 +1,8 @@
 package com.ncubeeight.dejaentendu.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -28,7 +30,7 @@ object AppColors {
     val headerGradientEnd = Color(0xFF159957)
 }
 
-private val DejaEntenduColorScheme = lightColorScheme(
+private val DejaEntenduLightColorScheme = lightColorScheme(
     primary = AppColors.coral,
     background = AppColors.background,
     surface = AppColors.surface,
@@ -36,10 +38,25 @@ private val DejaEntenduColorScheme = lightColorScheme(
     onSurface = AppColors.ink,
 )
 
+// iOS's AppTheme has no dark variant at all — Home/Vocabulary/Flashcard
+// etc. hardcode AppTheme.* colors regardless of the system's light/dark
+// setting there, so its Settings > Appearance toggle only ever affects
+// unstyled system chrome (Forms, alerts, the keyboard), never the custom
+// screens. This dark scheme mirrors that same scope of effect on Android:
+// it governs Material3's default/unstyled components, while our own
+// AppColors-styled screens stay visually identical either way, same as iOS.
+private val DejaEntenduDarkColorScheme = darkColorScheme(
+    primary = AppColors.coral,
+    background = Color(0xFF1C1712),
+    surface = Color(0xFF241C16),
+    onBackground = Color(0xFFEFE6DC),
+    onSurface = Color(0xFFEFE6DC),
+)
+
 @Composable
-fun DejaEntenduTheme(content: @Composable () -> Unit) {
+fun DejaEntenduTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = DejaEntenduColorScheme,
+        colorScheme = if (darkTheme) DejaEntenduDarkColorScheme else DejaEntenduLightColorScheme,
         content = content,
     )
 }

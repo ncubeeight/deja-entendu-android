@@ -20,6 +20,9 @@ sealed interface Screen {
     data object Vocabulary : Screen
 
     @Serializable
+    data object Settings : Screen
+
+    @Serializable
     data class Flashcard(val entryId: String) : Screen
 
     @Serializable

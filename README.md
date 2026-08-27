@@ -14,16 +14,42 @@ confirmed working on a real Pixel 10 Pro:
 - **Upload (Audio Samples) screen** (`ui/UploadScreen.kt`) — SAF file picker + language-select sheet, mirroring iOS's `VoiceMemoImportView.swift`.
 - **Transcription Runner screen** (`ui/TranscriptionRunnerScreen.kt`) — decode → transcribe → study notes, with tap-a-word-to-add-to-Vocabulary (a Snackbar-confirmed simplification of iOS's tap-then-confirm popover).
 - **Home screen** (`ui/HomeScreen.kt`) — port of iOS's `HomeSummaryView.swift`: gradient banner, recent recordings, vocabulary preview grid with placeholder words.
-- **Navigation shell** (`ui/AppNavigation.kt`, `ui/Screen.kt`) — bottom-tab `NavHost` (Home / Upload / Vocabulary) using navigation-compose's type-safe `@Serializable` routes; `MainActivity.kt` now just hosts this, no more smoke-test code.
+- **Navigation shell** (`ui/AppNavigation.kt`, `ui/Screen.kt`) — bottom-tab `NavHost` (Home / Upload / Vocabulary / Settings) using navigation-compose's type-safe `@Serializable` routes; `MainActivity.kt` now just hosts this, no more smoke-test code.
+- **Settings screen** (`ui/SettingsScreen.kt`, `settings/AppSettingsStore.kt`, `settings/AppSettingsState.kt`, `settings/AppColorScheme.kt`) — language filter (which of the 5 languages show in Upload's picker) + System/Light/Dark theme, mirroring iOS's `AppSettings.swift`/`SettingsView.swift`. Added 2026-08-26.
 - **`AppColors`** (`app/src/main/java/com/ncubeeight/dejaentendu/ui/theme/AppTheme.kt`) — the exact color palette from iOS's `App/AppTheme.swift`.
 
 All of the above was walked through live on a real Pixel 10 Pro — added a
 word, generated a flashcard, imported a real file via the system file
-picker, and transcribed a genuine ~25-minute recording — not just built.
+picker, transcribed a genuine ~25-minute recording, and toggled every
+Settings control (language filter, all three theme options) — not just
+built.
 
-**Deliberately deferred** (not part of this build-out): a Settings tab
-(language filter / theme), and an Android equivalent of iOS's Share
-Extension (share-into-app from another app, e.g. Translate).
+**Settings implementation notes:**
+- iOS's `AppTheme.swift` has **no dark variant at all** — every custom
+  screen hardcodes its light-palette colors regardless of the system
+  scheme, so iOS's Light/Dark/System toggle only ever affects unstyled
+  system chrome (Forms, alerts, the keyboard). `AppTheme.kt`'s new
+  `DejaEntenduDarkColorScheme` mirrors that same *scope* of effect: it's a
+  real dark `MaterialTheme.colorScheme` for Material's own default
+  components, while Home/Vocabulary/Flashcard/Upload keep hardcoding
+  `AppColors` either way, exactly like iOS.
+- Real bug caught by testing in dark mode: `SettingsScreen.kt` initially
+  used the hardcoded light-only `AppColors.ink`/`inkSoft` for its own text
+  (it's the one screen that doesn't hardcode an `AppColors.background`
+  container, so it correctly follows the live theme) — against the new
+  dark scheme's near-black background, that made every label nearly
+  invisible. Fixed by switching to `MaterialTheme.colorScheme.onBackground`/
+  `onSurfaceVariant`, which adapt automatically.
+- The theme preference needs to take effect immediately when changed,
+  even though `MainActivity`'s theme wrapper (unlike each bottom-tab
+  screen) stays mounted across tab switches and never gets recomposed
+  from scratch. Solved with `settings/AppSettingsState.kt`, a small shared
+  `mutableStateOf` holder — a lighter alternative to threading a callback
+  through the whole nav graph.
+
+**Deliberately deferred** (not part of this build-out): an Android
+equivalent of iOS's Share Extension (share-into-app from another app,
+e.g. Translate).
 
 ## Why nothing else carried over
 

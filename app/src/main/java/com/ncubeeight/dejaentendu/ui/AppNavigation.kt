@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -31,13 +32,13 @@ private val tabs = listOf(
     TabItem(Screen.Home, "Home", Icons.Filled.Home),
     TabItem(Screen.Upload, "Audio Samples", Icons.Filled.GraphicEq),
     TabItem(Screen.Vocabulary, "Vocabulary", Icons.AutoMirrored.Filled.MenuBook),
+    TabItem(Screen.Settings, "Settings", Icons.Filled.Settings),
 )
 
 /**
- * NavHost + bottom tab bar hosting Home / Upload / Vocabulary, mirroring
- * iOS's HomeView.swift TabView (minus a Settings tab — not part of this
- * build-out). Flashcard/Transcription are push destinations reached from
- * any of the three tabs, not tabs themselves, same as on iOS.
+ * NavHost + bottom tab bar hosting Home / Upload / Vocabulary / Settings,
+ * mirroring iOS's HomeView.swift TabView. Flashcard/Transcription are push
+ * destinations reached from any tab, not tabs themselves, same as on iOS.
  */
 @Composable
 fun AppNavigation() {
@@ -88,6 +89,9 @@ fun AppNavigation() {
             }
             composable<Screen.Vocabulary> {
                 VocabularyListScreen(onEntryClick = { navController.navigate(Screen.Flashcard(it.id)) })
+            }
+            composable<Screen.Settings> {
+                SettingsScreen()
             }
             composable<Screen.Flashcard> { entry ->
                 val route: Screen.Flashcard = entry.toRoute()
