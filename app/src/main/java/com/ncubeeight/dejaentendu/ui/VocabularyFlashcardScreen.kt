@@ -1,12 +1,18 @@
 package com.ncubeeight.dejaentendu.ui
 
+import android.speech.tts.TextToSpeech
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -40,11 +47,35 @@ private sealed interface FlashcardStatus {
  * A dedicated page for one vocabulary term: pronunciation, translation,
  * and an example sentence with the term highlighted. Generated on-device
  * the first time this opens, then cached on the entry so reopening it is
- * instant. Mirrors iOS's VocabularyFlashcardView.swift.
+ * instant. Mirrors iOS's VocabularyFlashcardView.swift, including its two
+ * speak buttons (term + example sentence) — Android's TextToSpeech in
+ * place of AVSpeechSynthesizer.
  */
 @Composable
 fun VocabularyFlashcardScreen(entry: VocabularyEntry) {
     val context = LocalContext.current
+    val tts = rememberTextToSpeech()
+
+    // Only meaningful when the entry's language is known — without it we'd
+    // fall back to the device's default TTS voice, which is available but
+    // not reliably correct, so that case counts as "available" rather than
+    // blocked. Same reasoning as iOS's isVoiceAvailable.
+    val isSpeechAvailable = remember(tts, entry.language) {
+        val engine = tts
+        val language = entry.language
+        when {
+            engine == null -> false
+            language == null -> true
+            else -> engine.isLanguageAvailable(language.locale) >= TextToSpeech.LANG_AVAILABLE
+        }
+    }
+
+    fun speak(text: String) {
+        val engine = tts ?: return
+        entry.language?.let { engine.setLanguage(it.locale) }
+        engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+    }
+
     var status by remember(entry.id) {
         mutableStateOf(
             if (entry.hasFlashcardDetails) {
@@ -88,7 +119,20 @@ fun VocabularyFlashcardScreen(entry: VocabularyEntry) {
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Text(entry.text, fontSize = 40.sp, fontWeight = FontWeight.Bold, color = AppColors.ink)
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(entry.text, fontSize = 40.sp, fontWeight = FontWeight.Bold, color = AppColors.ink)
+                IconButton(onClick = { speak(entry.text) }, enabled = isSpeechAvailable) {
+                    Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Speak")
+                }
+            }
+            if (!isSpeechAvailable) {
+                Text(
+                    "Spoken pronunciation isn't available for ${entry.language?.displayName ?: "this term"} on this device.",
+                    color = AppColors.inkSoft,
+                )
+            }
+        }
 
         when (val current = status) {
             is FlashcardStatus.Loading -> CircularProgressIndicator()
@@ -97,7 +141,15 @@ fun VocabularyFlashcardScreen(entry: VocabularyEntry) {
                 LabeledValue("Pronunciation", current.details.pronunciation)
                 LabeledValue("Translation", current.details.translation)
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Example", color = AppColors.inkSoft)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Example", color = AppColors.inkSoft)
+                        IconButton(
+                            onClick = { speak(current.details.exampleSentence) },
+                            enabled = isSpeechAvailable,
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Speak example")
+                        }
+                    }
                     Text(highlightedExample(current.details.exampleSentence, entry.text))
                     Text(current.details.exampleTranslation, color = AppColors.inkSoft)
                 }

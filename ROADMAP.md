@@ -20,6 +20,13 @@ theme, mirroring iOS's `AppSettings.swift`/`SettingsView.swift`) — see the
 README's "Settings implementation notes" for the dark-theme scope decision
 and a real dark-on-dark contrast bug caught by testing.
 
+**Samples feature added 2026-08-27** (unified audio/text/image import,
+replacing the audio-only Upload screen, mirroring iOS's same-day
+generalization) — see the README's "Samples feature" section for the
+architecture, the ML Kit Text Recognition v2 OCR path, and two real bugs
+(an `imePadding` gap in bottom sheets, and a bottom-nav tab-switching bug)
+caught by testing on the Pixel 10.
+
 **Deliberately deferred**, still not part of this milestone: an Android
 equivalent of iOS's Share Extension (share text/audio into the app from
 another app, e.g. Translate or Voice Memos).

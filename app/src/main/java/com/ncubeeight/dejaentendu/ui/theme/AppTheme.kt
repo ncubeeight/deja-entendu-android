@@ -23,6 +23,11 @@ object AppColors {
     val coralSoft = Color(0xFFFFE4DA)
     val teal = Color(0xFF2BBAA3)
     val tealSoft = Color(0xFFDFF6F1)
+    // Added for SampleKind's text-sample tint, mirroring iOS's AppTheme.swift
+    // (which has these two but our earlier port of this file didn't carry
+    // them over since nothing used them yet).
+    val sky = Color(0xFF3D84D6)
+    val skySoft = Color(0xFFE1EDFB)
 
     // Matches the blue-green header gradient on the GitHub Pages site
     // (jekyll-theme-cayman's .page-header: linear-gradient(120deg, #155799, #159957)).

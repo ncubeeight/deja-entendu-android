@@ -11,10 +11,10 @@ confirmed working on a real Pixel 10 Pro:
 - **Data layer**: `audio/ImportedRecording.kt`+`ImportedRecordingStore.kt`+`AudioIngestion.kt`, `studynotes/VocabularyEntry.kt`+`VocabularyStore.kt` — JSON-file persistence in `context.filesDir`, mirroring iOS's `Codable`+JSON-in-Documents pattern.
 - **Vocabulary List / Add Word / Flashcard screens** (`ui/VocabularyListScreen.kt`, `ui/AddVocabularyWordSheet.kt`, `ui/VocabularyFlashcardScreen.kt`) — ported from iOS's equivalents, using the already-verified `FlashcardGenerator`.
 - **File-based transcription** (`transcription/AudioDecoder.kt`, `transcription/SpeechTranscriberService.kt`) — decodes an imported audio file and transcribes it on-device via ML Kit GenAI Speech Recognition.
-- **Upload (Audio Samples) screen** (`ui/UploadScreen.kt`) — SAF file picker + language-select sheet, mirroring iOS's `VoiceMemoImportView.swift`.
-- **Transcription Runner screen** (`ui/TranscriptionRunnerScreen.kt`) — decode → transcribe → study notes, with tap-a-word-to-add-to-Vocabulary (a Snackbar-confirmed simplification of iOS's tap-then-confirm popover).
-- **Home screen** (`ui/HomeScreen.kt`) — port of iOS's `HomeSummaryView.swift`: gradient banner, recent recordings, vocabulary preview grid with placeholder words.
-- **Navigation shell** (`ui/AppNavigation.kt`, `ui/Screen.kt`) — bottom-tab `NavHost` (Home / Upload / Vocabulary / Settings) using navigation-compose's type-safe `@Serializable` routes; `MainActivity.kt` now just hosts this, no more smoke-test code.
+- **Samples screen** (`ui/SamplesScreen.kt`) — unified audio/text/image import list (see the dated section below); SAF file picker + language-select sheet for audio, mirroring iOS's `VoiceMemoImportView.swift`/`SamplesView.swift`.
+- **Transcription Runner screen** (`ui/TranscriptionRunnerScreen.kt`) — decode/prepare → transcribe → study notes, with tap-a-word-to-add-to-Vocabulary (a Snackbar-confirmed simplification of iOS's tap-then-confirm popover).
+- **Home screen** (`ui/HomeScreen.kt`) — port of iOS's `HomeSummaryView.swift`: gradient banner, recent samples (all three kinds), vocabulary preview grid with placeholder words.
+- **Navigation shell** (`ui/AppNavigation.kt`, `ui/Screen.kt`) — bottom-tab `NavHost` (Home / Samples / Vocabulary / Settings) using navigation-compose's type-safe `@Serializable` routes; `MainActivity.kt` now just hosts this, no more smoke-test code.
 - **Settings screen** (`ui/SettingsScreen.kt`, `settings/AppSettingsStore.kt`, `settings/AppSettingsState.kt`, `settings/AppColorScheme.kt`) — language filter (which of the 5 languages show in Upload's picker) + System/Light/Dark theme, mirroring iOS's `AppSettings.swift`/`SettingsView.swift`. Added 2026-08-26.
 - **`AppColors`** (`app/src/main/java/com/ncubeeight/dejaentendu/ui/theme/AppTheme.kt`) — the exact color palette from iOS's `App/AppTheme.swift`.
 
@@ -47,9 +47,102 @@ built.
   `mutableStateOf` holder — a lighter alternative to threading a callback
   through the whole nav graph.
 
+**Home screen tile redesign + working placeholder demo (2026-08-27):**
+`ui/HomeScreen.kt`'s "Words to review" tiles now show term / translation /
+language on three separate rows in a uniformly-sized box (a real 3-column
+grid via a small `WordGrid` helper — chunking into rows rather than a
+`LazyVerticalGrid`, since the item count here is always small and nesting
+a lazy grid inside the screen's own scrollable `Column` isn't worth the
+ceremony). Real vocabulary entries use the same 3-row layout, degrading
+gracefully when translation/language aren't known yet (e.g. a manually-
+typed word before its flashcard has been opened once).
+
+The example/placeholder words are no longer just decorative: tapping one
+creates a real `VocabularyEntry` (with that word's language) and opens its
+flashcard immediately, generating real pronunciation/translation/example
+content on-device — the same path any other vocabulary entry goes through.
+Once any word (placeholder-triggered or manually added) exists, this
+section switches to showing real vocabulary instead of the example set,
+so the demo naturally steps aside as the user's real list grows; from
+there they can "×" a demo word out like anything else. Verified live: this
+is exactly how it played out testing on-device — tapping "Bonjour"
+produced a real flashcard, and Home showed it afterward instead of the
+other four placeholders.
+
+**Speak buttons on the Flashcard screen (2026-08-27):** `ui/
+VocabularyFlashcardScreen.kt` now has two speaker buttons — next to the
+term and next to the example sentence — mirroring iOS's
+`VocabularyFlashcardView.swift` (`AVSpeechSynthesizer`). Android's
+`android.speech.tts.TextToSpeech` is the equivalent; no new dependency
+needed (`ui/rememberTextToSpeech.kt` wraps its async init/shutdown as a
+small Composable). Same availability logic as iOS: `isLanguageAvailable()`
+gates the button and shows an explanatory caption when a voice for that
+language isn't installed on the device, but an entry with *no* known
+language (manual entry) is still treated as available and just falls back
+to the device's default voice, rather than being blocked. Verified live on
+the Pixel 10 — tapped both buttons on a French entry, real TTS engine
+(`com.google.android.tts`) audio played, no crash.
+
 **Deliberately deferred** (not part of this build-out): an Android
 equivalent of iOS's Share Extension (share-into-app from another app,
 e.g. Translate).
+
+**Samples feature — unified audio/text/image import (2026-08-27):** ported
+iOS's generalization of the old audio-only import flow into a single
+"Samples" concept. `ui/UploadScreen.kt` is gone, replaced by
+`ui/SamplesScreen.kt` — a filterable list (`SingleChoiceSegmentedButtonRow`:
+All/Audio/Text/Image) combining three JSON stores
+(`samples/ImportedTextSample(Store).kt`, `samples/ImportedImageSample
+(Store).kt`, plus the existing recording store) via a type-erased
+`samples/AnySample.kt` sealed interface, mirroring iOS's `AnySample.swift`.
+`ui/TextImportSheet.kt` and `ui/ImageImportSheet.kt` are the add flows
+(mirroring `TextImportView.swift`/`ImageImportView.swift`); the shared
+transcript → study-notes → tap-word-to-vocabulary pipeline in `ui/
+TranscriptionRunnerScreen.kt` now takes a `transcription/SampleInput.kt`
+(audio needs real decode+transcribe, text/image already have resolved
+text and skip straight to study notes) instead of a bare recording. Home's
+"Continue studying" and add-dialog, and the nav shell's Upload tab
+(renamed **Samples**, `Icons.Filled.Inbox`), were updated to match.
+
+Image OCR uses **ML Kit Text Recognition v2** in place of iOS's Vision —
+verified against real Maven metadata, not assumed docs:
+`com.google.mlkit:text-recognition:16.0.1` (Latin/German/French) plus
+`text-recognition-chinese`/`text-recognition-japanese`, selected per
+`SupportedLanguage` in `samples/ImageIngestion.kt`. **Verified on the
+Pixel 10** via a temporary smoke-test screen (`copyAndRecognizeText`
+called directly against synthetic French/Japanese/Chinese photos, no UI
+in front of it yet) before building `ImageImportSheet.kt` on top — all
+three recognized text back essentially verbatim, confirming the
+recognizer-selection logic works before layering the pick/review/save UI
+on it. The photo-picker → OCR → save round trip through the actual
+`ImageImportSheet` UI was exercised as far as opening the picker and
+handling cancellation cleanly; picking a specific photo end-to-end
+through the picker wasn't automated (ADB-driving Google Photos' picker UI
+turned out to be impractical — worth a quick manual check).
+
+Two real bugs surfaced while building this, both worth remembering for
+any future `ModalBottomSheet` work:
+- **Sheets with a keyboard need `Modifier.imePadding()`.** `TextImportSheet`/
+  `ImageImportSheet` (and the pre-existing `AddVocabularyWordSheet`) laid
+  out their Save/Cancel buttons *behind* where the on-screen keyboard
+  physically covers the screen — Compose measured them at their full,
+  keyboard-less height, so the buttons existed in the layout but were
+  genuinely untappable (the IME is a separate window on top). Fixed by
+  adding `.verticalScroll(rememberScrollState()).imePadding()` to each
+  sheet's content `Column`, so the sheet actually shrinks/scrolls above
+  the keyboard instead of extending behind it.
+- **Bottom-nav tab switching could land on the wrong screen.** `ui/
+  AppNavigation.kt`'s tab-click handler used the standard `popUpTo(start)
+  { saveState = true }; launchSingleTop = true; restoreState = true`
+  pattern from Google's own bottom-nav sample. That pattern assumes every
+  destination is a direct tab; once a push destination (`Transcription`)
+  sits on top of a tab, the combination reproducibly *restored the
+  pushed Transcription screen instead of the tapped tab* — tapping
+  Home from Transcription, for instance, would silently reopen
+  Transcription. Fixed by dropping `saveState`/`restoreState` entirely:
+  a tab switch now always pops cleanly back to the start destination
+  first. Caught by manually walking Home → sample → tab-bar taps on the
+  device — it never showed up as a build or lint issue.
 
 ## Why nothing else carried over
 

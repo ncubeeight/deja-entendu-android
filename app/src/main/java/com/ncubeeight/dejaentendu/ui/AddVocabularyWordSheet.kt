@@ -2,6 +2,7 @@ package com.ncubeeight.dejaentendu.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -36,7 +37,7 @@ fun AddVocabularyWordSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
     val sheetState = rememberModalBottomSheetState()
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.imePadding().padding(20.dp)) {
             Text("Add a Word")
             OutlinedTextField(
                 value = text,

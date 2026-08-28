@@ -117,4 +117,13 @@ dependencies {
     // Media3's Transformer was tried first but only exports MP4 containers
     // (confirmed via its docs, 2026-08-26); it has no raw/headerless PCM
     // or WAV output, so it can't produce what fromPfd requires.
+
+    // On-device OCR for the Image sample type — the Android analog of
+    // iOS's Vision (VNRecognizeTextRequest). Unlike the genai-* family,
+    // this is ML Kit's older, stable vision API — verified current version
+    // against Maven, 2026-08-27. Script-specific recognizers are separate
+    // artifacts; German/French use the base (Latin) one.
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
+    implementation("com.google.mlkit:text-recognition-japanese:16.0.1")
 }

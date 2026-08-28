@@ -10,12 +10,12 @@ import com.google.mlkit.genai.prompt.TextPart
 import com.google.mlkit.genai.prompt.generateTypedContentRequest
 import com.google.mlkit.genai.schema.annotations.Generable
 import com.google.mlkit.genai.schema.annotations.Guide
+import com.ncubeeight.dejaentendu.transcription.SupportedLanguage
 import kotlinx.coroutines.flow.first
 
-/** Mirrors iOS's WordGloss (WordGlossGenerator.swift). */
 @Generable
 data class WordGloss(
-    @param:Guide(description = "A concise 1-4 word English gloss for the given word or phrase. No punctuation, no romaji.")
+    @param:Guide(description = "A concise 1-4 word English gloss/translation for the given word or phrase. No punctuation, no romanization.")
     val englishGloss: String,
 )
 
@@ -23,13 +23,20 @@ class WordGlossUnavailableException(reason: String) : Exception(
     "On-device definitions aren't available right now: $reason"
 )
 
+/**
+ * A quick, lightweight on-device translation for a single tapped transcript
+ * word — deliberately much cheaper than FlashcardGenerator's full
+ * pronunciation+example generation, so it's fast enough to show in a
+ * tap-and-preview popup before the user decides whether to commit the word
+ * to their Vocabulary list.
+ */
 object WordGlossGenerator {
 
     /**
-     * Looks up a short English gloss for a single word/clause, using the
-     * surrounding line as context — same as iOS's IrohaExplorerView use case.
+     * Looks up a short English gloss for a single word/phrase, using the
+     * surrounding sentence as context to disambiguate.
      */
-    suspend fun gloss(word: String, line: String): String {
+    suspend fun gloss(word: String, sentence: String, language: SupportedLanguage): String {
         val model = Generation.getClient()
 
         when (val status = model.checkStatus()) {
@@ -51,14 +58,16 @@ object WordGlossGenerator {
 
         val instruction = SystemInstruction(
             """
-            You are a compact classical-Japanese-to-English dictionary. Given a
-            short word or clause and the line of poetry it's drawn from, respond
-            with only a brief, plain English gloss for that word — not a
-            translation of the whole line.
+            You are a compact ${language.displayName}-to-English dictionary. The
+            user will give you a word or short phrase in ${language.displayName}
+            — treat that as certain, do not reinterpret it as another language.
+            Given the sentence it's drawn from for context, respond with only a
+            brief, plain English translation for that word or phrase — not a
+            translation of the whole sentence.
             """.trimIndent()
         )
 
-        val contentRequest = GenerateContentRequest.Builder(instruction, TextPart("Word: $word\nLine: $line"))
+        val contentRequest = GenerateContentRequest.Builder(instruction, TextPart("Word: $word\nSentence: $sentence"))
             .apply { maxOutputTokens = 60 }
             .build()
 
