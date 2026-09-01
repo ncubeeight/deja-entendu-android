@@ -59,13 +59,102 @@ private fun pronunciationSystemHint(language: SupportedLanguage): String = when 
     SupportedLanguage.CHINESE_TRADITIONAL, SupportedLanguage.CHINESE_SIMPLIFIED ->
         "Mandarin pinyin readings spelled out in plain English syllables (e.g. " +
             "你好 → 'nee-how'). Never Japanese on'yomi/kun'yomi readings."
+    SupportedLanguage.KOREAN ->
+        "Revised Romanization of Korean, spelled out in plain English syllables " +
+            "(e.g. 안녕하세요 → 'an-nyeong-ha-se-yo')."
+    SupportedLanguage.HINDI ->
+        "A plain-English phonetic transliteration of the Devanagari pronunciation " +
+            "(e.g. नमस्ते → 'nuh-muh-stay')."
+    SupportedLanguage.TAMIL ->
+        "A plain-English phonetic transliteration of the Tamil pronunciation " +
+            "(e.g. வணக்கம் → 'vuh-nuck-kum')."
+    SupportedLanguage.GUJARATI ->
+        "A plain-English phonetic transliteration of the Gujarati pronunciation " +
+            "(e.g. નમસ્તે → 'nuh-muh-stay')."
+    SupportedLanguage.BENGALI ->
+        "A plain-English phonetic transliteration of the Bengali pronunciation " +
+            "(e.g. ধন্যবাদ → 'dhon-no-bad')."
+    SupportedLanguage.PUNJABI ->
+        "A plain-English phonetic transliteration of the Gurmukhi pronunciation " +
+            "(e.g. ਧੰਨਵਾਦ → 'dhun-nuh-vahd')."
+    SupportedLanguage.URDU ->
+        "A plain-English phonetic transliteration of the Urdu pronunciation " +
+            "(e.g. شکریہ → 'shuk-ree-ah')."
+    SupportedLanguage.THAI ->
+        "A plain-English phonetic transliteration of the Thai pronunciation, " +
+            "hyphenating syllables (e.g. สวัสดี → 'sa-wat-dee')."
+    SupportedLanguage.VIETNAMESE ->
+        "A plain-English phonetic approximation of Vietnamese pronunciation " +
+            "(e.g. 'xin chào' → 'sin chow')."
+    SupportedLanguage.GREEK ->
+        "A plain-English phonetic transliteration of Greek pronunciation " +
+            "(e.g. 'ευχαριστώ' → 'ef-hah-ree-STOH')."
+    SupportedLanguage.HEBREW ->
+        "A plain-English phonetic transliteration of Hebrew pronunciation " +
+            "(e.g. 'תודה' → 'toh-DAH')."
+    SupportedLanguage.RUSSIAN ->
+        "A plain-English phonetic transliteration of Russian pronunciation " +
+            "(e.g. 'спасибо' → 'spuh-SEE-buh')."
+    SupportedLanguage.UKRAINIAN ->
+        "A plain-English phonetic transliteration of Ukrainian pronunciation " +
+            "(e.g. 'дякую' → 'DYAH-koo-yoo')."
     SupportedLanguage.GERMAN ->
         "A plain-English phonetic approximation of German pronunciation (e.g. " +
             "'Danke' → 'DAHN-kuh')."
     SupportedLanguage.FRENCH ->
         "A plain-English phonetic approximation of French pronunciation (e.g. " +
             "'Bonjour' → 'boh-ZHOOR')."
+    SupportedLanguage.SPANISH ->
+        "A plain-English phonetic approximation of Spanish pronunciation (e.g. " +
+            "'Gracias' → 'GRAH-see-ahs')."
+    SupportedLanguage.ITALIAN ->
+        "A plain-English phonetic approximation of Italian pronunciation (e.g. " +
+            "'Grazie' → 'GRAHT-see-eh')."
+    SupportedLanguage.PORTUGUESE ->
+        "A plain-English phonetic approximation of European Portuguese " +
+            "pronunciation (e.g. 'Obrigado' → 'oh-bree-GAH-doo')."
+    SupportedLanguage.DANISH ->
+        "A plain-English phonetic approximation of Danish pronunciation (e.g. " +
+            "'Tak' → 'tack')."
+    SupportedLanguage.DUTCH ->
+        "A plain-English phonetic approximation of Dutch pronunciation (e.g. " +
+            "'Dank je' → 'dahnk yuh')."
+    SupportedLanguage.NORWEGIAN ->
+        "A plain-English phonetic approximation of Norwegian pronunciation " +
+            "(e.g. 'Takk' → 'tock')."
+    SupportedLanguage.SWEDISH ->
+        "A plain-English phonetic approximation of Swedish pronunciation (e.g. " +
+            "'Tack' → 'tack')."
+    SupportedLanguage.TURKISH ->
+        "A plain-English phonetic approximation of Turkish pronunciation (e.g. " +
+            "'Teşekkürler' → 'teh-shek-kewr-lehr')."
+    SupportedLanguage.CZECH ->
+        "A plain-English phonetic approximation of Czech pronunciation (e.g. " +
+            "'Děkuji' → 'DYEH-koo-yee')."
+    SupportedLanguage.ENGLISH ->
+        "A plain-English dictionary-style phonetic respelling (e.g. 'library' " +
+            "→ 'LY-brair-ee')."
 }
+
+/**
+ * A compact, script-family-level version of [pronunciationSystemHint] for
+ * when the language isn't known up front — listing all 28 languages
+ * individually here (as the known-language branch does per-call) would
+ * bloat every unknown-language prompt for little benefit, since the model
+ * still has to identify the language before any of those per-language
+ * examples become relevant.
+ */
+private fun pronunciationSystemGeneralRules(): String = """
+    - Chinese (hanzi): Mandarin pinyin.
+    - Japanese (kanji/kana): Hepburn romaji (on'yomi/kun'yomi) — never pinyin, even though kanji and hanzi look alike.
+    - Korean (hangul): Revised Romanization.
+    - Devanagari-script languages (Hindi): standard phonetic transliteration.
+    - Other Indic-script languages (Tamil, Gujarati, Bengali, Punjabi/Gurmukhi): standard phonetic transliteration of that script.
+    - Urdu (Perso-Arabic script): standard phonetic transliteration.
+    - Thai script: phonetic transliteration, hyphenating syllables.
+    - Greek, Hebrew, Russian, Ukrainian, and other non-Latin-script languages: a plain-English phonetic transliteration.
+    - Latin-script languages (French, German, Spanish, Italian, Portuguese, Danish, Dutch, Norwegian, Swedish, Turkish, Vietnamese, Czech, English, ...): a plain-English phonetic approximation of that language's actual pronunciation — not an English reading of the spelling.
+""".trimIndent()
 
 object FlashcardGenerator {
 
@@ -111,7 +200,15 @@ object FlashcardGenerator {
             ${language.displayName} using the term — plus that sentence's
             English translation. The pronunciation guide must cover the
             term's full length, every syllable from start to finish — never
-            just a stem or the first part of a longer word.
+            just a stem or the first part of a longer word. The example
+            sentence must be written entirely in ${language.displayName},
+            in its native script, and must contain the term itself
+            verbatim. It is NOT the translation field — never write an
+            English dictionary definition or explanation there (e.g. for
+            "library", writing "A library is a building that houses
+            books..." would be wrong — write an actual ${language.displayName}
+            sentence like "私は毎日図書館に行きます" instead). Only
+            exampleTranslation may be in English.
             """.trimIndent()
         } else {
             """
@@ -124,7 +221,12 @@ object FlashcardGenerator {
             just a stem or the first part of a longer word. Match the
             romanization system to the language you identified — do not mix
             them up:
-            ${SupportedLanguage.entries.joinToString("\n") { "- ${it.displayName}: ${pronunciationSystemHint(it)}" }}
+            ${pronunciationSystemGeneralRules()}
+            The example sentence must be written entirely in the term's own
+            language, in its native script, and must contain the term
+            itself verbatim. It is NOT the translation field — never write
+            an English dictionary definition or explanation there. Only
+            exampleTranslation may be in English.
             """.trimIndent()
         }
 
@@ -136,8 +238,20 @@ object FlashcardGenerator {
 
         try {
             val response = model.generateContent(request)
-            return response.candidates.firstOrNull()?.response
+            val details = response.candidates.firstOrNull()?.response
                 ?: throw FlashcardUnavailableException("no result")
+
+            // Kuromoji's dictionary-backed reading overrides whatever the
+            // LLM guessed for Japanese — same reasoning as iOS's
+            // CFStringTokenizer override, and only for Japanese: other
+            // languages don't have this kanji/hanzi ambiguity problem, so
+            // the model's own guess (already steered by
+            // pronunciationSystemHint above) is left as-is.
+            return if (language == SupportedLanguage.JAPANESE) {
+                JapaneseReading.romaji(term)?.let { details.copy(pronunciation = it) } ?: details
+            } else {
+                details
+            }
         } catch (e: GenAiException) {
             throw FlashcardUnavailableException(e.message ?: "unknown error")
         }

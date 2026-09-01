@@ -64,6 +64,17 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // kuromoji-ipadic and its transitive kuromoji-core dependency both
+    // ship identical META-INF/*.md doc files (license/contributors/notice
+    // text, not code) — harmless duplicates, safe to drop the second copy.
+    packaging {
+        resources {
+            excludes += "META-INF/CONTRIBUTORS.md"
+            excludes += "META-INF/LICENSE.md"
+            excludes += "META-INF/NOTICE.md"
+        }
+    }
 }
 
 dependencies {
@@ -126,4 +137,15 @@ dependencies {
     implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
     implementation("com.google.mlkit:text-recognition-japanese:16.0.1")
+    // Added for the language-pack expansion (Korean, Hindi/Devanagari) —
+    // version verified against Maven, matching the other script recognizers.
+    implementation("com.google.mlkit:text-recognition-korean:16.0.1")
+    implementation("com.google.mlkit:text-recognition-devanagari:16.0.1")
+
+    // A real, dictionary-backed Japanese reading for kanji pronunciation —
+    // the Android analog of iOS's CFStringTokenizer-based fix, since
+    // Android has no OS-level equivalent. Pure JVM, no native code; only
+    // version published on Maven (0.9.0, 2015) but its dictionary data
+    // doesn't go stale the way an actively-developed API might.
+    implementation("com.atilika.kuromoji:kuromoji-ipadic:0.9.0")
 }

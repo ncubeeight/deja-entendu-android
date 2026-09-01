@@ -20,11 +20,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -45,6 +47,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ncubeeight.dejaentendu.audio.AudioIngestion
@@ -52,8 +55,10 @@ import com.ncubeeight.dejaentendu.audio.ImportedRecording
 import com.ncubeeight.dejaentendu.audio.ImportedRecordingStore
 import com.ncubeeight.dejaentendu.samples.AnySample
 import com.ncubeeight.dejaentendu.samples.ImportedImageSampleStore
+import com.ncubeeight.dejaentendu.samples.ImportedTextSample
 import com.ncubeeight.dejaentendu.samples.ImportedTextSampleStore
 import com.ncubeeight.dejaentendu.samples.SampleKind
+import com.ncubeeight.dejaentendu.samples.SampleTextGenerator
 import com.ncubeeight.dejaentendu.samples.id
 import com.ncubeeight.dejaentendu.samples.kind
 import com.ncubeeight.dejaentendu.samples.importedAtEpochMillis
@@ -96,8 +101,18 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
     var isImageImportVisible by remember { mutableStateOf(false) }
     var isLanguageSheetVisible by remember { mutableStateOf(false) }
 
+    // Generated-sample state — no speech/OCR gating, every enabled language works.
+    var isGenerateLanguageSheetVisible by remember { mutableStateOf(false) }
+    var pendingGenerateLanguage by remember { mutableStateOf(AppSettingsStore.enabledLanguagesSorted(context).first()) }
+    var isGeneratingSample by remember { mutableStateOf(false) }
+
+    // Only languages ML Kit GenAI Speech Recognition actually supports are
+    // offered here — audio transcription isn't universal the way typed
+    // text/Generate Sample are. Falls back to every speech-capable language
+    // if the user has disabled all of them in Settings, so this picker is
+    // never empty.
     var enabledLanguages by remember {
-        mutableStateOf(SupportedLanguage.entries.filter { it in AppSettingsStore.enabledLanguages(context) })
+        mutableStateOf(AppSettingsStore.audioImportLanguages(context))
     }
     var pendingLanguage by remember { mutableStateOf(enabledLanguages.first()) }
 
@@ -107,7 +122,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
         audioRecordings = ImportedRecordingStore.load(context)
         textSamples = ImportedTextSampleStore.load(context)
         imageSamples = ImportedImageSampleStore.load(context)
-        enabledLanguages = SupportedLanguage.entries.filter { it in AppSettingsStore.enabledLanguages(context) }
+        enabledLanguages = AppSettingsStore.audioImportLanguages(context)
     }
 
     val allSamples = (audioRecordings.map(AnySample::Audio) + textSamples.map(AnySample::Text) + imageSamples.map(AnySample::Image))
@@ -162,6 +177,31 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
         isLanguageSheetVisible = true
     }
 
+    fun presentGenerateLanguageSheet() {
+        val allEnabled = AppSettingsStore.enabledLanguagesSorted(context)
+        if (pendingGenerateLanguage !in allEnabled) pendingGenerateLanguage = allEnabled.first()
+        isGenerateLanguageSheetVisible = true
+    }
+
+    fun generateSample() {
+        isGeneratingSample = true
+        scope.launch {
+            try {
+                val text = SampleTextGenerator.generateParagraph(pendingGenerateLanguage)
+                val sample = ImportedTextSample(
+                    body = text,
+                    importedAtEpochMillis = System.currentTimeMillis(),
+                    language = pendingGenerateLanguage,
+                )
+                textSamples = listOf(sample) + textSamples
+                ImportedTextSampleStore.save(context, textSamples)
+            } catch (e: Exception) {
+                snackbarHostState.showSnackbar(e.message ?: e.toString())
+            }
+            isGeneratingSample = false
+        }
+    }
+
     Scaffold(
         topBar = { TopAppBar(title = { Text("Samples") }) },
         floatingActionButton = {
@@ -171,27 +211,47 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                SampleFilter.entries.forEachIndexed { index, option ->
-                    SegmentedButton(
-                        selected = filter == option,
-                        onClick = { filter = option },
-                        shape = SegmentedButtonDefaults.itemShape(index, SampleFilter.entries.size),
-                    ) {
-                        Text(option.label)
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    SampleFilter.entries.forEachIndexed { index, option ->
+                        SegmentedButton(
+                            selected = filter == option,
+                            onClick = { filter = option },
+                            shape = SegmentedButtonDefaults.itemShape(index, SampleFilter.entries.size),
+                        ) {
+                            Text(option.label)
+                        }
+                    }
+                }
+
+                if (filteredSamples.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                        Text("No samples yet. Import a recording, add text, or scan a photo below.")
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(filteredSamples, key = { it.id }) { sample ->
+                            SampleRow(sample, onClick = { onSampleClick(sample) }, onDelete = { delete(sample) })
+                        }
                     }
                 }
             }
 
-            if (filteredSamples.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                    Text("No samples yet. Import a recording, add text, or scan a photo below.")
-                }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(filteredSamples, key = { it.id }) { sample ->
-                        SampleRow(sample, onClick = { onSampleClick(sample) }, onDelete = { delete(sample) })
+            if (isGeneratingSample) {
+                Box(
+                    modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        CircularProgressIndicator()
+                        Text("Generating sample…", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -218,6 +278,13 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
                     onClick = { isAddDialogVisible = false; isImageImportVisible = true },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text("Scan Photo") }
+                TextButton(
+                    onClick = {
+                        isAddDialogVisible = false
+                        presentGenerateLanguageSheet()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Generate Sample") }
             }
         }
     }
@@ -247,6 +314,44 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 ) {
                     Text("Continue")
+                }
+            }
+        }
+    }
+
+    if (isGenerateLanguageSheetVisible) {
+        val sheetState = rememberModalBottomSheetState()
+        val generateLanguages = remember { AppSettingsStore.enabledLanguagesSorted(context) }
+        ModalBottomSheet(onDismissRequest = { isGenerateLanguageSheetVisible = false }, sheetState = sheetState) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text("What language would you like the sample in?")
+                Text(
+                    "A short, simple practice paragraph will be generated on-device — no recording or file needed.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                for (language in generateLanguages) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = language == pendingGenerateLanguage,
+                                onClick = { pendingGenerateLanguage = language },
+                            )
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = language == pendingGenerateLanguage, onClick = { pendingGenerateLanguage = language })
+                        Text(language.displayName)
+                    }
+                }
+                Button(
+                    onClick = {
+                        isGenerateLanguageSheetVisible = false
+                        generateSample()
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                ) {
+                    Text("Generate")
                 }
             }
         }

@@ -51,9 +51,10 @@ import kotlinx.coroutines.withContext
 fun ImageImportSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val enabledLanguages = remember {
-        SupportedLanguage.entries.filter { it in AppSettingsStore.enabledLanguages(context) }
-    }
+    // Only languages ML Kit Text Recognition v2 has a script recognizer
+    // for are offered here — OCR coverage doesn't line up with speech
+    // coverage (e.g. Norwegian has OCR but no speech recognition).
+    val enabledLanguages = remember { AppSettingsStore.photoImportLanguages(context) }
     var language by remember { mutableStateOf(enabledLanguages.first()) }
     var isProcessing by remember { mutableStateOf(false) }
     var ingestedSample by remember { mutableStateOf<ImportedImageSample?>(null) }

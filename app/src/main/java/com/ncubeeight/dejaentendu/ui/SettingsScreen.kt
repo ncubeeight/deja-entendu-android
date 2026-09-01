@@ -67,7 +67,7 @@ fun SettingsScreen() {
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Languages shown on import", color = onSurfaceVariant)
-                for (language in SupportedLanguage.entries) {
+                for (language in SupportedLanguage.entries.sortedBy { it.displayName }) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,

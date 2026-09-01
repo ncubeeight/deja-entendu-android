@@ -28,6 +28,21 @@ object AppColors {
     // them over since nothing used them yet).
     val sky = Color(0xFF3D84D6)
     val skySoft = Color(0xFFE1EDFB)
+    val gold = Color(0xFFE8A93D)
+    val goldSoft = Color(0xFFFCEFD7)
+    val lavender = Color(0xFF8B7CD6)
+    val lavenderSoft = Color(0xFFEAE6FA)
+    val rose = Color(0xFFE0609E)
+    val roseSoft = Color(0xFFFBE3EE)
+
+    /**
+     * Soft backgrounds cycled across consecutive parsed transcript words so
+     * word boundaries stay visible even in scripts with no whitespace
+     * between words (Japanese, Chinese) — the same six-hue set used
+     * elsewhere just at reduced saturation, so it reads as an accent rather
+     * than competing with the ink/coral UI. Mirrors iOS's AppTheme.rainbow.
+     */
+    val rainbow: List<Color> = listOf(coralSoft, goldSoft, tealSoft, skySoft, lavenderSoft, roseSoft)
 
     // Matches the blue-green header gradient on the GitHub Pages site
     // (jekyll-theme-cayman's .page-header: linear-gradient(120deg, #155799, #159957)).

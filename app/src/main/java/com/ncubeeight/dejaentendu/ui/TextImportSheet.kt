@@ -43,9 +43,9 @@ import com.ncubeeight.dejaentendu.transcription.SupportedLanguage
 @Composable
 fun TextImportSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
     val context = LocalContext.current
-    val enabledLanguages = remember {
-        SupportedLanguage.entries.filter { it in AppSettingsStore.enabledLanguages(context) }
-    }
+    // Typed text needs neither speech recognition nor OCR, so every
+    // enabled language is offered here, unlike audio/photo import.
+    val enabledLanguages = remember { AppSettingsStore.enabledLanguagesSorted(context) }
     var body by remember { mutableStateOf("") }
     var language by remember { mutableStateOf(enabledLanguages.first()) }
     val sheetState = rememberModalBottomSheetState()

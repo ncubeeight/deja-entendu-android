@@ -28,8 +28,14 @@ object SpeechTranscriberService {
     private const val SAMPLE_RATE = 16_000
 
     suspend fun transcribe(pcmFile: File, language: SupportedLanguage): String {
+        // The audio-import language picker only ever offers languages with
+        // a non-null speechRecognitionLocale, so this indicates a caller
+        // bug, not a reachable user-facing state.
+        val recognitionLocale = language.speechRecognitionLocale
+            ?: throw TranscriptionUnavailableException("${language.displayName} isn't supported for audio transcription")
+
         val options = SpeechRecognizerOptions.Builder().apply {
-            locale = language.speechRecognitionLocale
+            locale = recognitionLocale
             preferredMode = SpeechRecognizerOptions.Mode.MODE_ADVANCED
         }.build()
 

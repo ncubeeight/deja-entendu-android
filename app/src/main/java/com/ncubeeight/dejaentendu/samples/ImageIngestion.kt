@@ -9,8 +9,11 @@ import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.TextRecognizerOptionsInterface
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
+import com.google.mlkit.vision.text.devanagari.DevanagariTextRecognizerOptions
 import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
+import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.ncubeeight.dejaentendu.transcription.OcrScript
 import com.ncubeeight.dejaentendu.transcription.SupportedLanguage
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
@@ -64,13 +67,16 @@ object ImageIngestion {
     }
 
     private fun recognizerOptionsFor(language: SupportedLanguage): TextRecognizerOptionsInterface =
-        when (language) {
-            SupportedLanguage.CHINESE_TRADITIONAL, SupportedLanguage.CHINESE_SIMPLIFIED ->
-                ChineseTextRecognizerOptions.Builder().build()
-            SupportedLanguage.JAPANESE ->
-                JapaneseTextRecognizerOptions.Builder().build()
-            SupportedLanguage.GERMAN, SupportedLanguage.FRENCH ->
-                TextRecognizerOptions.DEFAULT_OPTIONS
+        when (language.ocrScript) {
+            OcrScript.CHINESE -> ChineseTextRecognizerOptions.Builder().build()
+            OcrScript.JAPANESE -> JapaneseTextRecognizerOptions.Builder().build()
+            OcrScript.KOREAN -> KoreanTextRecognizerOptions.Builder().build()
+            OcrScript.DEVANAGARI -> DevanagariTextRecognizerOptions.Builder().build()
+            OcrScript.LATIN -> TextRecognizerOptions.DEFAULT_OPTIONS
+            // The photo-import language picker only ever offers languages
+            // with a non-null ocrScript, so this indicates a caller bug,
+            // not a reachable user-facing state.
+            null -> throw IllegalArgumentException("${language.displayName} has no OCR recognizer available")
         }
 
     private fun queryDisplayName(context: Context, uri: Uri): String? {

@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -34,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -190,8 +193,9 @@ private fun TranscriptBlock(
 
         for (sentence in TranscriptSegmentation.sentences(text, language.locale)) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                for (word in TranscriptSegmentation.words(sentence, language.locale)) {
-                    TranscriptWordToken(word, sentence, language, onAddToVocabulary, onViewFlashcard)
+                for ((index, word) in TranscriptSegmentation.words(sentence, language.locale).withIndex()) {
+                    val background = AppColors.rainbow[index % AppColors.rainbow.size]
+                    TranscriptWordToken(word, sentence, language, background, onAddToVocabulary, onViewFlashcard)
                 }
             }
         }
@@ -217,6 +221,7 @@ private fun TranscriptWordToken(
     word: String,
     sentence: String,
     language: SupportedLanguage,
+    background: Color,
     onAddToVocabulary: (String) -> VocabularyEntry,
     onViewFlashcard: (VocabularyEntry) -> Unit,
 ) {
@@ -228,19 +233,22 @@ private fun TranscriptWordToken(
     Text(
         word,
         color = AppColors.ink,
-        modifier = Modifier.clickable {
-            isExpanded = true
-            if (glossState == null) {
-                glossState = GlossState.Loading
-                scope.launch {
-                    glossState = try {
-                        GlossState.Ready(WordGlossGenerator.gloss(word, sentence, language))
-                    } catch (e: Exception) {
-                        GlossState.Failed(e.message ?: e.toString())
+        modifier = Modifier
+            .background(background, RoundedCornerShape(5.dp))
+            .clickable {
+                isExpanded = true
+                if (glossState == null) {
+                    glossState = GlossState.Loading
+                    scope.launch {
+                        glossState = try {
+                            GlossState.Ready(WordGlossGenerator.gloss(word, sentence, language))
+                        } catch (e: Exception) {
+                            GlossState.Failed(e.message ?: e.toString())
+                        }
                     }
                 }
             }
-        },
+            .padding(horizontal = 3.dp, vertical = 1.dp),
     )
 
     DropdownMenu(expanded = isExpanded, onDismissRequest = { isExpanded = false }) {
@@ -295,8 +303,5 @@ private fun StudyNotesBlock(notes: StudyNotes) {
         for (word in notes.keyVocabulary) {
             Text("• $word", color = AppColors.inkSoft)
         }
-
-        Text("Note", color = AppColors.ink)
-        Text(notes.grammarNote, color = AppColors.inkSoft)
     }
 }
