@@ -85,4 +85,24 @@ enum class SupportedLanguage(
     // Not in iOS's list — Gemini Nano supports Czech, Apple Intelligence
     // doesn't. No GenAI Speech Recognition entry; OCR works (Latin script).
     CZECH("Czech", Locale.forLanguageTag("cs-CZ"), null, OcrScript.LATIN),
+
+    // Added 2026-09-01 — no official per-language list exists for Gemini
+    // Nano/the GenAI Prompt API (confirmed by fetching Google's own docs),
+    // so LLM support below is a proxy signal only: whether the language
+    // appears on the cloud Gemini Live API's supported-language list (a
+    // different, larger, server-side model in the same family), not a
+    // guarantee for the on-device model these calls actually use.
+    //
+    // Indonesian also has beta-tier GenAI Speech Recognition support.
+    INDONESIAN("Indonesian", Locale.forLanguageTag("id-ID"), Locale.forLanguageTag("id-ID"), OcrScript.LATIN),
+    MARATHI("Marathi", Locale.forLanguageTag("mr-IN"), null, OcrScript.DEVANAGARI),
+    SWAHILI("Swahili", Locale.forLanguageTag("sw-KE"), null, OcrScript.LATIN),
+    TAGALOG("Tagalog", Locale.forLanguageTag("tl-PH"), null, OcrScript.LATIN),
+    YORUBA("Yoruba", Locale.forLanguageTag("yo-NG"), null, OcrScript.LATIN),
+    QUECHUA("Quechua", Locale.forLanguageTag("qu-PE"), null, OcrScript.LATIN),
+    // No OCR recognizer exists for these three scripts at all — same
+    // text-only profile as Bengali/Punjabi/Urdu/Greek/Hebrew above.
+    TELUGU("Telugu", Locale.forLanguageTag("te-IN"), null, null),
+    KANNADA("Kannada", Locale.forLanguageTag("kn-IN"), null, null),
+    AMHARIC("Amharic", Locale.forLanguageTag("am-ET"), null, null),
 }

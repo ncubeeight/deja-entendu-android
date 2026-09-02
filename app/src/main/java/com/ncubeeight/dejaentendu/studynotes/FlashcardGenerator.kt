@@ -134,6 +134,33 @@ private fun pronunciationSystemHint(language: SupportedLanguage): String = when 
     SupportedLanguage.ENGLISH ->
         "A plain-English dictionary-style phonetic respelling (e.g. 'library' " +
             "→ 'LY-brair-ee')."
+    SupportedLanguage.INDONESIAN ->
+        "A plain-English phonetic approximation of Indonesian pronunciation " +
+            "(e.g. 'Terima kasih' → 'tuh-REE-mah KAH-see')."
+    SupportedLanguage.MARATHI ->
+        "A plain-English phonetic transliteration of the Devanagari " +
+            "pronunciation (e.g. धन्यवाद → 'dhun-yuh-vahd')."
+    SupportedLanguage.SWAHILI ->
+        "A plain-English phonetic approximation of Swahili pronunciation " +
+            "(e.g. 'Asante' → 'ah-SAHN-teh')."
+    SupportedLanguage.TAGALOG ->
+        "A plain-English phonetic approximation of Tagalog pronunciation " +
+            "(e.g. 'Salamat' → 'sah-LAH-maht')."
+    SupportedLanguage.YORUBA ->
+        "A plain-English phonetic approximation of Yoruba pronunciation, " +
+            "ignoring tone marks (e.g. 'Ẹ ṣé' → 'eh-SHEH')."
+    SupportedLanguage.QUECHUA ->
+        "A plain-English phonetic approximation of Quechua pronunciation " +
+            "(e.g. 'Añay' → 'ah-NYIGH')."
+    SupportedLanguage.TELUGU ->
+        "A plain-English phonetic transliteration of the Telugu pronunciation " +
+            "(e.g. ధన్యవాదాలు → 'dhun-yuh-vah-dah-lu')."
+    SupportedLanguage.KANNADA ->
+        "A plain-English phonetic transliteration of the Kannada pronunciation " +
+            "(e.g. ಧನ್ಯವಾದಗಳು → 'dhun-yuh-vah-dah-guh-lu')."
+    SupportedLanguage.AMHARIC ->
+        "A plain-English phonetic transliteration of the Amharic (Ge'ez " +
+            "script) pronunciation (e.g. 'አመሰግናለሁ' → 'ah-meh-seh-gih-nah-leh-hu')."
 }
 
 /**
@@ -148,12 +175,13 @@ private fun pronunciationSystemGeneralRules(): String = """
     - Chinese (hanzi): Mandarin pinyin.
     - Japanese (kanji/kana): Hepburn romaji (on'yomi/kun'yomi) — never pinyin, even though kanji and hanzi look alike.
     - Korean (hangul): Revised Romanization.
-    - Devanagari-script languages (Hindi): standard phonetic transliteration.
-    - Other Indic-script languages (Tamil, Gujarati, Bengali, Punjabi/Gurmukhi): standard phonetic transliteration of that script.
+    - Devanagari-script languages (Hindi, Marathi): standard phonetic transliteration.
+    - Other Indic-script languages (Tamil, Gujarati, Bengali, Punjabi/Gurmukhi, Telugu, Kannada): standard phonetic transliteration of that script.
     - Urdu (Perso-Arabic script): standard phonetic transliteration.
+    - Amharic (Ge'ez script): standard phonetic transliteration.
     - Thai script: phonetic transliteration, hyphenating syllables.
     - Greek, Hebrew, Russian, Ukrainian, and other non-Latin-script languages: a plain-English phonetic transliteration.
-    - Latin-script languages (French, German, Spanish, Italian, Portuguese, Danish, Dutch, Norwegian, Swedish, Turkish, Vietnamese, Czech, English, ...): a plain-English phonetic approximation of that language's actual pronunciation — not an English reading of the spelling.
+    - Latin-script languages (French, German, Spanish, Italian, Portuguese, Danish, Dutch, Norwegian, Swedish, Turkish, Vietnamese, Czech, English, Indonesian, Swahili, Tagalog, Yoruba, Quechua, ...): a plain-English phonetic approximation of that language's actual pronunciation — not an English reading of the spelling.
 """.trimIndent()
 
 object FlashcardGenerator {
