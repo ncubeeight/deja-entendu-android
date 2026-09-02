@@ -23,6 +23,9 @@ sealed interface Screen {
     data object Settings : Screen
 
     @Serializable
+    data object Iroha : Screen
+
+    @Serializable
     data class Flashcard(val entryId: String) : Screen
 
     /**

@@ -110,7 +110,11 @@ fun AppNavigation() {
                             launchSingleTop = true
                         }
                     },
+                    onExampleInteractionClick = { navController.navigate(Screen.Iroha) },
                 )
+            }
+            composable<Screen.Iroha> {
+                IrohaExplorerScreen()
             }
             composable<Screen.Samples> {
                 SamplesScreen(onSampleClick = { navController.navigate(Screen.Transcription(it.kind.name.lowercase(), it.id)) })

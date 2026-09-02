@@ -82,4 +82,55 @@ object WordGlossGenerator {
             throw WordGlossUnavailableException(e.message ?: "unknown error")
         }
     }
+
+    /**
+     * Looks up a short English gloss for a word/clause from the Iroha poem,
+     * using the line it's drawn from as context — the classical-Japanese-
+     * specific sibling of [gloss], used only by IrohaExplorerScreen's "try
+     * the interaction" demo. Mirrors iOS's original gloss(forWord:inLine:).
+     */
+    suspend fun glossClassicalJapanese(word: String, line: String): String {
+        val model = Generation.getClient()
+
+        when (val status = model.checkStatus()) {
+            FeatureStatus.AVAILABLE -> Unit
+            FeatureStatus.DOWNLOADABLE, FeatureStatus.DOWNLOADING -> {
+                val outcome = model.download().first {
+                    it is DownloadStatus.DownloadCompleted || it is DownloadStatus.DownloadFailed
+                }
+                if (outcome is DownloadStatus.DownloadFailed) {
+                    throw WordGlossUnavailableException("model download failed: ${outcome.e.message}")
+                }
+            }
+            else -> throw WordGlossUnavailableException("model unavailable (status=$status)")
+        }
+
+        if (!model.isStructuredOutputFeatureAvailable()) {
+            throw WordGlossUnavailableException("structured output isn't supported on this device")
+        }
+
+        val instruction = SystemInstruction(
+            """
+            You are a compact classical-Japanese-to-English dictionary. Given a
+            short word or clause and the line of poetry it's drawn from, respond
+            with only a brief, plain English gloss for that word — not a
+            translation of the whole line.
+            """.trimIndent()
+        )
+
+        val contentRequest = GenerateContentRequest.Builder(instruction, TextPart("Word: $word\nLine: $line"))
+            .apply { maxOutputTokens = 60 }
+            .build()
+
+        val request = generateTypedContentRequest(contentRequest, WordGloss::class)
+
+        try {
+            val response = model.generateContent(request)
+            val gloss = response.candidates.firstOrNull()?.response
+                ?: throw WordGlossUnavailableException("no result")
+            return gloss.englishGloss
+        } catch (e: GenAiException) {
+            throw WordGlossUnavailableException(e.message ?: "unknown error")
+        }
+    }
 }

@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -84,6 +85,7 @@ fun HomeScreen(
     onSampleClick: (AnySample) -> Unit,
     onEntryClick: (VocabularyEntry) -> Unit,
     onImportRecordingClick: () -> Unit,
+    onExampleInteractionClick: () -> Unit,
 ) {
     val context = LocalContext.current
     var audioRecordings by remember { mutableStateOf(ImportedRecordingStore.load(context)) }
@@ -140,6 +142,22 @@ fun HomeScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onExampleInteractionClick)
+                .padding(horizontal = 20.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Filled.AutoStories, contentDescription = null, tint = AppColors.coral, modifier = Modifier.size(20.dp))
+            Text(
+                "Example interaction",
+                color = AppColors.coral,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
+
         TitleBanner()
 
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(28.dp)) {
