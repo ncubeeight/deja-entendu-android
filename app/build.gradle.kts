@@ -148,4 +148,14 @@ dependencies {
     // version published on Maven (0.9.0, 2015) but its dictionary data
     // doesn't go stale the way an actively-developed API might.
     implementation("com.atilika.kuromoji:kuromoji-ipadic:0.9.0")
+
+    // PDF text extraction for the Add Text screen's file picker — the
+    // Android analog of iOS's PDFKit (PDFDocument.string). Android's own
+    // PdfRenderer only rasterizes pages to bitmaps, it has no text-layer
+    // API at all, so a third-party library is required; this is a pure-JVM
+    // Android port of Apache PDFBox with no native code. Version verified
+    // against Maven Central (also the latest published), and its public
+    // API (PDFBoxResourceLoader.init, PDDocument.load, PDFTextStripper)
+    // confirmed by decompiling the real AAR, 2026-09-07.
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
 }

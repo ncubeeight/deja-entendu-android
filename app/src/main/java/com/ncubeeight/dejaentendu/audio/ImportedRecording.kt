@@ -20,5 +20,5 @@ data class ImportedRecording(
     val language: SupportedLanguage,
 ) {
     @Serializable
-    enum class Source { FILES_IMPORTER }
+    enum class Source { FILES_IMPORTER, LIVE_RECORDING }
 }

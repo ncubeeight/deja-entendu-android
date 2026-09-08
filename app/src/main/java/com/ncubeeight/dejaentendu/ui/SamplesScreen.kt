@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -106,6 +108,12 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
     var pendingGenerateLanguage by remember { mutableStateOf(AppSettingsStore.enabledLanguagesSorted(context).first()) }
     var isGeneratingSample by remember { mutableStateOf(false) }
 
+    // Live-recording state — gated the same way as Import Recording, since
+    // it also goes through ML Kit GenAI Speech Recognition later.
+    var isRecordLanguageSheetVisible by remember { mutableStateOf(false) }
+    var pendingRecordLanguage by remember { mutableStateOf(AppSettingsStore.audioImportLanguages(context).first()) }
+    var isLiveRecordingVisible by remember { mutableStateOf(false) }
+
     // Only languages ML Kit GenAI Speech Recognition actually supports are
     // offered here — audio transcription isn't universal the way typed
     // text/Generate Sample are. Falls back to every speech-capable language
@@ -181,6 +189,11 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
         val allEnabled = AppSettingsStore.enabledLanguagesSorted(context)
         if (pendingGenerateLanguage !in allEnabled) pendingGenerateLanguage = allEnabled.first()
         isGenerateLanguageSheetVisible = true
+    }
+
+    fun presentRecordLanguageSheet() {
+        if (pendingRecordLanguage !in enabledLanguages) pendingRecordLanguage = enabledLanguages.first()
+        isRecordLanguageSheetVisible = true
     }
 
     fun generateSample() {
@@ -285,6 +298,13 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text("Generate Sample") }
+                TextButton(
+                    onClick = {
+                        isAddDialogVisible = false
+                        presentRecordLanguageSheet()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Record Live") }
             }
         }
     }
@@ -292,7 +312,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
     if (isLanguageSheetVisible) {
         val sheetState = rememberModalBottomSheetState()
         ModalBottomSheet(onDismissRequest = { isLanguageSheetVisible = false }, sheetState = sheetState) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp)) {
                 Text("What language is this recording in?")
                 for (language in enabledLanguages) {
                     Row(
@@ -323,7 +343,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
         val sheetState = rememberModalBottomSheetState()
         val generateLanguages = remember { AppSettingsStore.enabledLanguagesSorted(context) }
         ModalBottomSheet(onDismissRequest = { isGenerateLanguageSheetVisible = false }, sheetState = sheetState) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp)) {
                 Text("What language would you like the sample in?")
                 Text(
                     "A short, simple practice paragraph will be generated on-device — no recording or file needed.",
@@ -355,6 +375,50 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
                 }
             }
         }
+    }
+
+    if (isRecordLanguageSheetVisible) {
+        val sheetState = rememberModalBottomSheetState()
+        ModalBottomSheet(onDismissRequest = { isRecordLanguageSheetVisible = false }, sheetState = sheetState) {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp)) {
+                Text("What language will you be speaking?")
+                for (language in enabledLanguages) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = language == pendingRecordLanguage,
+                                onClick = { pendingRecordLanguage = language },
+                            )
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = language == pendingRecordLanguage, onClick = { pendingRecordLanguage = language })
+                        Text(language.displayName)
+                    }
+                }
+                Button(
+                    onClick = {
+                        isRecordLanguageSheetVisible = false
+                        isLiveRecordingVisible = true
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                ) {
+                    Text("Continue")
+                }
+            }
+        }
+    }
+
+    if (isLiveRecordingVisible) {
+        LiveRecordingSheet(
+            language = pendingRecordLanguage,
+            onDismiss = { isLiveRecordingVisible = false },
+            onFinish = { recording ->
+                audioRecordings = listOf(recording) + audioRecordings
+                ImportedRecordingStore.save(context, audioRecordings)
+            },
+        )
     }
 
     if (isTextImportVisible) {
