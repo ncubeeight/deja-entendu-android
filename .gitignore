@@ -8,3 +8,9 @@ build/
 .externalNativeBuild
 .cxx
 local.properties
+
+# Release signing secrets — never commit. The actual .jks lives outside
+# this repo entirely, in a sibling directory.
+keystore.properties
+*.jks
+*.keystore
