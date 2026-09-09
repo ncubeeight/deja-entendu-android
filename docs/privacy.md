@@ -66,5 +66,4 @@ new version will be posted at this same URL.
 ## Contact
 
 Questions about this policy or the app can be sent via
-[this feedback form](https://forms.gle/qdjx68T8WV7TVK998), or by email to
-[ncubeeight@gmail.com](mailto:ncubeeight@gmail.com).
+[this feedback form](https://forms.gle/qdjx68T8WV7TVK998).
