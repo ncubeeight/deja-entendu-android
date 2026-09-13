@@ -7,7 +7,7 @@
   <!-- camera — centered on (77,77) -->
   <rect x="65" y="70" width="24" height="18" rx="4" fill="#000000"/>
   <rect x="73" y="66" width="8" height="5" rx="1.5" fill="#000000"/>
-  <circle cx="77" cy="79" r="5.5" fill="none"/>
+  <circle cx="77" cy="79" r="5" fill="none" stroke="#000000" stroke-width="1.8"/>
   <!-- microphone — centered on (77,123) -->
   <rect x="70" y="107.5" width="14" height="20" rx="7" fill="#000000"/>
   <path d="M64,119.5 a13,13 0 0 0 26,0" stroke="#000000" stroke-width="3" fill="none" stroke-linecap="round"/>
