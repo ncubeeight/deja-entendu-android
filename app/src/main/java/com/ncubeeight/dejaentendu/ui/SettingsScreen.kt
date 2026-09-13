@@ -1,5 +1,6 @@
 package com.ncubeeight.dejaentendu.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,9 +10,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -31,19 +37,26 @@ import com.ncubeeight.dejaentendu.settings.AppSettingsState
 import com.ncubeeight.dejaentendu.settings.AppSettingsStore
 import com.ncubeeight.dejaentendu.transcription.SupportedLanguage
 
-/** Mirrors iOS's SettingsView.swift: language filter + appearance picker. */
+/** Mirrors iOS's SettingsView.swift: appearance, Custom Glossary, then a searchable language filter. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(onCustomGlossaryClick: () -> Unit) {
     val context = LocalContext.current
     var enabledLanguages by remember { mutableStateOf(AppSettingsStore.enabledLanguages(context)) }
     var colorScheme by remember { mutableStateOf(AppSettingsStore.colorScheme(context)) }
+    var languageSearchText by remember { mutableStateOf("") }
     // This screen (unlike Home/Vocabulary/Flashcard) doesn't hardcode
     // AppColors on top of a hardcoded AppColors.background — it follows
     // MaterialTheme's live scheme, so its text must use MaterialTheme's
     // semantic colors too, or it goes dark-on-dark under the dark scheme.
     val onBackground = MaterialTheme.colorScheme.onBackground
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+
+    val filteredLanguages = remember(languageSearchText) {
+        val sorted = SupportedLanguage.entries.sortedBy { it.displayName }
+        if (languageSearchText.isBlank()) sorted
+        else sorted.filter { it.displayName.contains(languageSearchText, ignoreCase = true) }
+    }
 
     fun setLanguageEnabled(language: SupportedLanguage, isOn: Boolean) {
         val updated = enabledLanguages.toMutableSet()
@@ -66,28 +79,6 @@ fun SettingsScreen() {
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Languages shown on import", color = onSurfaceVariant)
-                for (language in SupportedLanguage.entries.sortedBy { it.displayName }) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(language.displayName, color = onBackground, modifier = Modifier.weight(1f))
-                        Switch(
-                            checked = language in enabledLanguages,
-                            onCheckedChange = { setLanguageEnabled(language, it) },
-                        )
-                    }
-                }
-                Text(
-                    "Turn off languages you don't use to simplify the picker. At least one must stay on.",
-                    color = onSurfaceVariant,
-                )
-            }
-
-            HorizontalDivider()
-
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Appearance", color = onSurfaceVariant)
                 for (scheme in AppColorScheme.entries) {
                     Row(
@@ -101,6 +92,63 @@ fun SettingsScreen() {
                         Text(scheme.displayName, color = onBackground)
                     }
                 }
+            }
+
+            HorizontalDivider()
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onCustomGlossaryClick)
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Filled.Book, contentDescription = null, tint = onBackground)
+                    Text(
+                        "Custom Glossary",
+                        color = onBackground,
+                        modifier = Modifier.weight(1f).padding(start = 12.dp),
+                    )
+                    Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = onSurfaceVariant)
+                }
+                Text(
+                    "Add your own term definitions — useful for specialized vocabulary an on-device model might not know, and still works on devices without one.",
+                    color = onSurfaceVariant,
+                )
+            }
+
+            HorizontalDivider()
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Languages shown on import", color = onSurfaceVariant)
+                OutlinedTextField(
+                    value = languageSearchText,
+                    onValueChange = { languageSearchText = it },
+                    placeholder = { Text("Search Languages") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                )
+                if (filteredLanguages.isEmpty()) {
+                    Text("No languages match \"$languageSearchText\".", color = onSurfaceVariant)
+                } else {
+                    for (language in filteredLanguages) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(language.displayName, color = onBackground, modifier = Modifier.weight(1f))
+                            Switch(
+                                checked = language in enabledLanguages,
+                                onCheckedChange = { setLanguageEnabled(language, it) },
+                            )
+                        }
+                    }
+                }
+                Text(
+                    "Turn off languages you don't use to simplify the picker. At least one must stay on.",
+                    color = onSurfaceVariant,
+                )
             }
         }
     }

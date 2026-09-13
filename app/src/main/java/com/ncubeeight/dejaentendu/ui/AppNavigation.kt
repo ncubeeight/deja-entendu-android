@@ -123,7 +123,10 @@ fun AppNavigation() {
                 VocabularyListScreen(onEntryClick = { navController.navigate(Screen.Flashcard(it.id)) })
             }
             composable<Screen.Settings> {
-                SettingsScreen()
+                SettingsScreen(onCustomGlossaryClick = { navController.navigate(Screen.CustomGlossary) })
+            }
+            composable<Screen.CustomGlossary> {
+                CustomGlossaryScreen()
             }
             composable<Screen.Flashcard> { entry ->
                 val route: Screen.Flashcard = entry.toRoute()

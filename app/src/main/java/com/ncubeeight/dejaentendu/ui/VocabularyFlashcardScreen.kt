@@ -8,8 +8,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ncubeeight.dejaentendu.studynotes.FlashcardDetails
 import com.ncubeeight.dejaentendu.studynotes.FlashcardGenerator
+import com.ncubeeight.dejaentendu.studynotes.GlossaryStore
 import com.ncubeeight.dejaentendu.studynotes.VocabularyEntry
 import com.ncubeeight.dejaentendu.studynotes.VocabularyStore
 import com.ncubeeight.dejaentendu.ui.theme.AppColors
@@ -131,6 +136,30 @@ fun VocabularyFlashcardScreen(entry: VocabularyEntry) {
                     "Spoken pronunciation isn't available for ${entry.language?.displayName ?: "this term"} on this device.",
                     color = AppColors.inkSoft,
                 )
+            }
+        }
+
+        // Shown regardless of loading/ready/failed status — this is the
+        // user's own data, not something generation success or failure
+        // should gate. Also the main reason this screen stays useful when
+        // on-device generation fails or is unavailable: a matching custom
+        // entry means there's still something real to show.
+        val customDefinition = remember(entry.text, entry.language) {
+            GlossaryStore.definition(context, entry.text, entry.language)
+        }
+        if (customDefinition != null) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(AppColors.goldSoft, RoundedCornerShape(14.dp))
+                    .padding(16.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Filled.Bookmark, contentDescription = null, tint = AppColors.inkSoft)
+                    Text("Your Definition", color = AppColors.inkSoft, fontSize = 13.sp)
+                }
+                Text(customDefinition, fontSize = 20.sp, color = AppColors.ink)
             }
         }
 
