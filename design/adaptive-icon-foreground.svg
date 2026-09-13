@@ -13,31 +13,33 @@
        now what's directly behind them); small contrast details use a solid
        dark tone instead of white, inverted from the original chat-bubble
        design where white was the backdrop, not the glyph color. -->
-  <!-- The glyphs below were originally laid out to fill the full 200x200
-       canvas, but Android's adaptive-icon safe zone only guarantees the
-       inner ~66dp circle (~61 units here) survives every launcher mask
-       shape — several corners (the mic's foot, the camera body, the
-       hiragana glyph) reached out to ~69-73 units and got clipped on
-       circular masks. Scaling the whole glyph group down around the
-       canvas center brings the farthest point to ~55 units, safely inside
-       the mask on every shape, without needing to re-lay-out anything. -->
-  <g transform="translate(100,100) scale(0.75) translate(-100,-100)">
-    <!-- camera -->
-    <rect x="46" y="58" width="24" height="18" rx="4" fill="#FFFFFF"/>
-    <rect x="54" y="54" width="8" height="5" rx="1.5" fill="#FFFFFF"/>
-    <circle cx="58" cy="67" r="5.5" fill="#3B1368"/>
-    <!-- microphone -->
-    <rect x="51" y="123" width="14" height="20" rx="7" fill="#FFFFFF"/>
-    <path d="M45,135 a13,13 0 0 0 26,0" stroke="#FFFFFF" stroke-width="3" fill="none" stroke-linecap="round"/>
-    <line x1="58" y1="148" x2="58" y2="154" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
-    <line x1="51" y1="154" x2="65" y2="154" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
-    <!-- organic swirl -->
-    <g transform="translate(97,100)">
-      <path d="M0,-16 A16,16 0 0,1 0,16 A7.6,7.6 0 0,0 0,0.7 A7.6,7.6 0 0,1 0,-16 Z" fill="#FFFFFF"/>
-      <path d="M0,-16 A16,16 0 0,1 0,16 A7.6,7.6 0 0,0 0,0.7 A7.6,7.6 0 0,1 0,-16 Z" fill="#FFFFFF" opacity="0.55" transform="rotate(180)"/>
-    </g>
-    <!-- glyphs -->
-    <text x="136" y="76" font-family="Arial, sans-serif" font-weight="700" font-size="30" fill="#FFFFFF" text-anchor="middle">A</text>
-    <text x="136" y="149" font-family="'Hiragino Sans', 'Noto Sans JP', sans-serif" font-weight="600" font-size="28" fill="#FFFFFF" text-anchor="middle">あ</text>
+  <!-- Every shape below is placed with absolute coordinates on a fixed
+       grid centered on the 200x200 canvas: the swirl sits exactly at the
+       center (100,100) (shrunk to radius 12 so it doesn't crowd the other
+       four), and camera/A/mic/あ are each centered on one of the four
+       points 23 units diagonally out from center — (77,77) (123,77)
+       (77,123) (123,123) — so all four are the same distance (32.5 units)
+       from the center and from each other, with a clean gap around the
+       swirl. Each glyph's own bounding box is centered on its anchor
+       point; the farthest corner of any glyph from the canvas center
+       lands between ~48.8 and ~52.7 units — comfortably inside the
+       ~61-unit adaptive-icon safe zone. -->
+  <!-- camera — centered on (77,77) -->
+  <rect x="65" y="70" width="24" height="18" rx="4" fill="#FFFFFF"/>
+  <rect x="73" y="66" width="8" height="5" rx="1.5" fill="#FFFFFF"/>
+  <circle cx="77" cy="79" r="5.5" fill="#3B1368"/>
+  <!-- microphone — centered on (77,123) -->
+  <rect x="70" y="107.5" width="14" height="20" rx="7" fill="#FFFFFF"/>
+  <path d="M64,119.5 a13,13 0 0 0 26,0" stroke="#FFFFFF" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <line x1="77" y1="132.5" x2="77" y2="138.5" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+  <line x1="70" y1="138.5" x2="84" y2="138.5" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+  <!-- organic swirl — centered exactly on (100,100), scaled down 25% so it
+       doesn't crowd the four glyphs around it -->
+  <g transform="translate(100,100) scale(0.75)">
+    <path d="M0,-16 A16,16 0 0,1 0,16 A7.6,7.6 0 0,0 0,0.7 A7.6,7.6 0 0,1 0,-16 Z" fill="#FFFFFF"/>
+    <path d="M0,-16 A16,16 0 0,1 0,16 A7.6,7.6 0 0,0 0,0.7 A7.6,7.6 0 0,1 0,-16 Z" fill="#FFFFFF" opacity="0.55" transform="rotate(180)"/>
   </g>
+  <!-- glyphs — "A" centered on (123,77), "あ" centered on (123,123) -->
+  <text x="123" y="88" font-family="Arial, sans-serif" font-weight="700" font-size="30" fill="#FFFFFF" text-anchor="middle">A</text>
+  <text x="123" y="134" font-family="'Hiragino Sans', 'Noto Sans JP', sans-serif" font-weight="600" font-size="28" fill="#FFFFFF" text-anchor="middle">あ</text>
 </svg>
