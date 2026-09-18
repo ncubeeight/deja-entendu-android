@@ -1,12 +1,9 @@
 package com.ncubeeight.dejaentendu.samples
 
 import com.ncubeeight.dejaentendu.audio.ImportedRecording
+import com.ncubeeight.dejaentendu.audio.displayTitle
 import com.ncubeeight.dejaentendu.transcription.SampleInput
 import com.ncubeeight.dejaentendu.transcription.SupportedLanguage
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 /**
  * A type-erased wrapper over the three kinds of imported sample, so the
@@ -35,7 +32,7 @@ val AnySample.kind: SampleKind
 
 val AnySample.title: String
     get() = when (this) {
-        is AnySample.Audio -> recording.originalFilename
+        is AnySample.Audio -> recording.displayTitle
         is AnySample.Text -> sample.title
         is AnySample.Image -> sample.originalFilename
     }
@@ -54,12 +51,12 @@ val AnySample.importedAtEpochMillis: Long
         is AnySample.Image -> sample.importedAtEpochMillis
     }
 
+// Just the language — the import timestamp used to be appended here too,
+// but a user importing their own sample already knows roughly when they
+// did it, so it was showing information nobody needed to read every row.
+// importedAtEpochMillis is kept around for sort order elsewhere.
 val AnySample.subtitle: String
-    get() {
-        val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
-            .withZone(ZoneId.systemDefault())
-        return "${language.displayName} · ${formatter.format(Instant.ofEpochMilli(importedAtEpochMillis))}"
-    }
+    get() = language.displayName
 
 /**
  * What TranscriptionRunnerScreen needs to run this sample through the

@@ -22,3 +22,16 @@ data class ImportedRecording(
     @Serializable
     enum class Source { FILES_IMPORTER, LIVE_RECORDING }
 }
+
+/**
+ * A short, source-specific label rather than the raw filename — the two
+ * audio journeys (importing an existing file vs. recording one in-app)
+ * are distinct enough to the user that they deserve a clear, consistent
+ * name instead of whatever the source file was called. Mirrors iOS's
+ * ImportedRecording.displayTitle.
+ */
+val ImportedRecording.displayTitle: String
+    get() = when (source) {
+        ImportedRecording.Source.FILES_IMPORTER -> "Uploaded Audio"
+        ImportedRecording.Source.LIVE_RECORDING -> "Live Audio"
+    }

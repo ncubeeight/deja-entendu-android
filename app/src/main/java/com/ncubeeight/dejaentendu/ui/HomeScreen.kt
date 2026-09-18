@@ -1,6 +1,7 @@
 package com.ncubeeight.dejaentendu.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,13 +19,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.AutoStories
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,15 +55,12 @@ import com.ncubeeight.dejaentendu.samples.importedAtEpochMillis
 import com.ncubeeight.dejaentendu.samples.kind
 import com.ncubeeight.dejaentendu.samples.subtitle
 import com.ncubeeight.dejaentendu.samples.title
+import com.ncubeeight.dejaentendu.settings.AppSettingsStore
 import com.ncubeeight.dejaentendu.studynotes.VocabularyEntry
 import com.ncubeeight.dejaentendu.studynotes.VocabularyStore
 import com.ncubeeight.dejaentendu.transcription.SupportedLanguage
 import com.ncubeeight.dejaentendu.ui.theme.AppColors
 import java.io.File
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 private data class PlaceholderWord(val language: SupportedLanguage, val word: String, val gloss: String)
 
@@ -97,11 +101,25 @@ fun HomeScreen(
     var isTextImportVisible by remember { mutableStateOf(false) }
     var isImageImportVisible by remember { mutableStateOf(false) }
 
+    // Captured once when Home first enters composition, before the
+    // LaunchedEffect below flips the persisted flag — so the full banner
+    // stays up for this entire session even though the flag itself is
+    // updated almost immediately. Only the *next* launch reads the
+    // updated value and gets the compact banner. Mirrors iOS's
+    // HomeSummaryView.init capturing @State before .task runs.
+    val showFullHeader = remember { !AppSettingsStore.hasCompletedFirstHomeLaunch(context) }
+
     OnResume {
         audioRecordings = ImportedRecordingStore.load(context)
         textSamples = ImportedTextSampleStore.load(context)
         imageSamples = ImportedImageSampleStore.load(context)
         vocabulary = VocabularyStore.load(context)
+    }
+
+    LaunchedEffect(Unit) {
+        if (!AppSettingsStore.hasCompletedFirstHomeLaunch(context)) {
+            AppSettingsStore.setHasCompletedFirstHomeLaunch(context)
+        }
     }
 
     val samples = (audioRecordings.map(AnySample::Audio) + textSamples.map(AnySample::Text) + imageSamples.map(AnySample::Image))
@@ -126,11 +144,6 @@ fun HomeScreen(
         }
     }
 
-    fun deleteVocabulary(entry: VocabularyEntry) {
-        vocabulary = vocabulary.filterNot { it.id == entry.id }
-        VocabularyStore.save(context, vocabulary)
-    }
-
     fun addPlaceholderAsVocabulary(item: PlaceholderWord) {
         val newEntry = VocabularyEntry(
             text = item.word,
@@ -141,7 +154,7 @@ fun HomeScreen(
         onEntryClick(newEntry)
     }
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    Column(modifier = Modifier.fillMaxSize().background(AppColors.homeBackground).verticalScroll(rememberScrollState())) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -149,23 +162,24 @@ fun HomeScreen(
                 .padding(horizontal = 20.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Filled.AutoStories, contentDescription = null, tint = AppColors.coral, modifier = Modifier.size(20.dp))
-            Text(
-                "Example interaction",
-                color = AppColors.coral,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(start = 8.dp),
-            )
+            Icon(Icons.Filled.AutoStories, contentDescription = if (showFullHeader) null else "Example interaction", tint = AppColors.coral, modifier = Modifier.size(20.dp))
+            if (showFullHeader) {
+                Text(
+                    "Example interaction",
+                    color = AppColors.coral,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
         }
 
-        TitleBanner()
+        TitleBanner(showFullHeader)
 
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(28.dp)) {
             ContinueStudyingSection(samples, onSampleClick, ::deleteSample)
             WordsToReviewSection(
                 vocabulary = vocabulary,
                 onEntryClick = onEntryClick,
-                onDeleteEntry = ::deleteVocabulary,
                 onPlaceholderClick = ::addPlaceholderAsVocabulary,
                 onAddClick = { isAddSheetVisible = true },
             )
@@ -234,27 +248,35 @@ fun HomeScreen(
 }
 
 @Composable
-private fun TitleBanner() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Brush.linearGradient(colors = listOf(AppColors.headerGradientStart, AppColors.headerGradientEnd)))
-            .padding(vertical = 40.dp, horizontal = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text(
-            "Déjà Entendu",
-            color = Color.White,
-            fontSize = 34.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            "You heard it before.\nLet's try to remember it.",
-            color = Color.White.copy(alpha = 0.85f),
-            textAlign = TextAlign.Center,
-        )
+private fun TitleBanner(showFull: Boolean) {
+    val gradient = Brush.linearGradient(colors = listOf(AppColors.headerGradientStart, AppColors.headerGradientEnd))
+    if (showFull) {
+        Column(
+            modifier = Modifier.fillMaxWidth().background(gradient).padding(vertical = 40.dp, horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text("Déjà Entendu", color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text(
+                "You heard it before.\nLet's try to remember it.",
+                color = Color.White.copy(alpha = 0.85f),
+                textAlign = TextAlign.Center,
+            )
+        }
+    } else {
+        // Shown on every launch after the first — the user already knows
+        // the brand by then, so this drops the tagline and shrinks to a
+        // narrow band, trading hero space for more vocabulary on screen.
+        Box(modifier = Modifier.fillMaxWidth().background(gradient).padding(vertical = 14.dp, horizontal = 20.dp)) {
+            Text(
+                "Déjà Entendu",
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
@@ -265,47 +287,76 @@ private fun ContinueStudyingSection(
     onDelete: (AnySample) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Continue studying", color = AppColors.ink, fontWeight = FontWeight.Bold)
+        Text("Continue studying", color = AppColors.homeInk, fontWeight = FontWeight.Bold)
 
         if (samples.isEmpty()) {
             Text(
                 "Recordings, text, and photos you import will show up here once they're saved between launches.",
-                color = AppColors.inkSoft,
+                color = AppColors.homeInkSoft,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(AppColors.surface, RoundedCornerShape(18.dp))
+                    .background(AppColors.homeSurface, RoundedCornerShape(18.dp))
+                    .border(1.dp, AppColors.homeLine, RoundedCornerShape(18.dp))
                     .padding(16.dp),
             )
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 for (sample in samples.take(3)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(AppColors.surface, RoundedCornerShape(18.dp))
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .background(sample.kind.tintSoft, RoundedCornerShape(9.dp)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(sample.kind.icon, contentDescription = null, tint = sample.kind.tint, modifier = Modifier.size(16.dp))
-                        }
-                        Column(
-                            modifier = Modifier.weight(1f).clickable { onSampleClick(sample) }.padding(start = 12.dp),
-                        ) {
-                            Text(sample.title, color = AppColors.ink, fontWeight = FontWeight.SemiBold)
-                            Text(sample.subtitle, color = AppColors.inkSoft)
-                        }
-                        IconButton(onClick = { onDelete(sample) }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Delete", tint = AppColors.inkSoft)
-                        }
-                    }
+                    SampleRow(sample, onSampleClick, onDelete)
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SampleRow(sample: AnySample, onSampleClick: (AnySample) -> Unit, onDelete: (AnySample) -> Unit) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                onDelete(sample)
+                true
+            } else {
+                false
+            }
+        },
+    )
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.error, RoundedCornerShape(18.dp))
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Color.White)
+            }
+        },
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(AppColors.homeSurface, RoundedCornerShape(18.dp))
+                .border(1.dp, AppColors.homeLine, RoundedCornerShape(18.dp))
+                .clickable { onSampleClick(sample) }
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier.size(32.dp).background(sample.kind.tintSoft, RoundedCornerShape(9.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(sample.kind.icon, contentDescription = null, tint = sample.kind.tint, modifier = Modifier.size(16.dp))
+            }
+            Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+                Text(sample.title, color = AppColors.homeInk, fontWeight = FontWeight.SemiBold)
+                Text(sample.subtitle, color = AppColors.homeInkSoft)
+            }
+            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = AppColors.homeInkSoft)
         }
     }
 }
@@ -314,12 +365,11 @@ private fun ContinueStudyingSection(
 private fun WordsToReviewSection(
     vocabulary: List<VocabularyEntry>,
     onEntryClick: (VocabularyEntry) -> Unit,
-    onDeleteEntry: (VocabularyEntry) -> Unit,
     onPlaceholderClick: (PlaceholderWord) -> Unit,
     onAddClick: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Words to review", color = AppColors.ink, fontWeight = FontWeight.Bold)
+        Text("Words to review", color = AppColors.homeInk, fontWeight = FontWeight.Bold)
 
         if (vocabulary.isEmpty()) {
             WordGrid {
@@ -337,26 +387,18 @@ private fun WordsToReviewSection(
             }
             Text(
                 "These are just examples — tap one to see how a flashcard works, or add your own.",
-                color = AppColors.inkSoft,
+                color = AppColors.homeInkSoft,
             )
         } else {
             WordGrid {
                 for (entry in vocabulary.take(9)) {
                     cell {
-                        Box {
-                            WordCard(
-                                word = entry.text,
-                                translation = entry.translation,
-                                languageName = entry.language?.displayName,
-                                onClick = { onEntryClick(entry) },
-                            )
-                            IconButton(
-                                onClick = { onDeleteEntry(entry) },
-                                modifier = Modifier.align(Alignment.TopEnd),
-                            ) {
-                                Icon(Icons.Filled.Close, contentDescription = "Delete", tint = AppColors.inkSoft)
-                            }
-                        }
+                        WordCard(
+                            word = entry.text,
+                            translation = entry.translation,
+                            languageName = entry.language?.displayName,
+                            onClick = { onEntryClick(entry) },
+                        )
                     }
                 }
                 cell { AddWordCard(onAddClick) }
@@ -402,6 +444,8 @@ private fun WordGrid(content: WordGridScope.() -> Unit) {
  * (translation is null until a flashcard's been generated once; language
  * is null for manually-typed words) — matches the iOS home screen's tile
  * style while degrading gracefully for real, not-yet-complete entries.
+ * No delete affordance here — Home is a preview of Vocabulary, not a
+ * management surface for it; delete from the Vocabulary tab itself.
  */
 @Composable
 private fun WordCard(word: String, translation: String?, languageName: String?, onClick: (() -> Unit)? = null) {
@@ -411,13 +455,14 @@ private fun WordCard(word: String, translation: String?, languageName: String?, 
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 96.dp)
-            .background(AppColors.surface, RoundedCornerShape(16.dp))
+            .background(AppColors.homeSurface, RoundedCornerShape(16.dp))
+            .border(1.dp, AppColors.homeLine, RoundedCornerShape(16.dp))
             .let { if (onClick != null) it.clickable(onClick = onClick) else it }
             .padding(vertical = 14.dp, horizontal = 8.dp),
     ) {
         Text(
             word,
-            color = AppColors.ink,
+            color = AppColors.homeInk,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
             maxLines = 1,
@@ -426,7 +471,7 @@ private fun WordCard(word: String, translation: String?, languageName: String?, 
         if (translation != null) {
             Text(
                 translation,
-                color = AppColors.inkSoft,
+                color = AppColors.homeInkSoft,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
@@ -436,7 +481,7 @@ private fun WordCard(word: String, translation: String?, languageName: String?, 
         if (languageName != null) {
             Text(
                 languageName,
-                color = AppColors.inkSoft,
+                color = AppColors.homeInkSoft,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
@@ -461,10 +506,4 @@ private fun AddWordCard(onClick: () -> Unit) {
         Icon(Icons.Filled.AddCircle, contentDescription = null, tint = AppColors.coral)
         Text("Add your own", color = AppColors.inkSoft, fontSize = 12.sp, textAlign = TextAlign.Center)
     }
-}
-
-private fun formatDate(epochMillis: Long): String {
-    val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
-        .withZone(ZoneId.systemDefault())
-    return formatter.format(Instant.ofEpochMilli(epochMillis))
 }

@@ -83,9 +83,16 @@ fun LiveRecordingSheet(
     var elapsedMillis by remember { mutableLongStateOf(0L) }
     var recordedFile by remember { mutableStateOf<java.io.File?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var hitTimeLimit by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         onDispose { if (isRecording) recorder.cancel() }
+    }
+
+    fun stopRecording() {
+        recorder.stop()
+        isRecording = false
+        recordedFile = recorder.outputFile
     }
 
     LaunchedEffect(isRecording) {
@@ -93,6 +100,14 @@ fun LiveRecordingSheet(
         val start = System.currentTimeMillis()
         while (isRecording) {
             elapsedMillis = System.currentTimeMillis() - start
+            // A practice sentence or short passage never needs anywhere
+            // near this long — capping it keeps a forgotten, still-running
+            // recording from quietly filling up device storage.
+            if (elapsedMillis >= MAX_DURATION_MILLIS) {
+                hitTimeLimit = true
+                stopRecording()
+                break
+            }
             delay(100)
         }
     }
@@ -103,15 +118,10 @@ fun LiveRecordingSheet(
             recorder.start()
             isRecording = true
             elapsedMillis = 0L
+            hitTimeLimit = false
         } catch (e: LiveAudioRecorderException) {
             errorMessage = e.message
         }
-    }
-
-    fun stopRecording() {
-        recorder.stop()
-        isRecording = false
-        recordedFile = recorder.outputFile
     }
 
     fun cancelAndDismiss() {
@@ -136,7 +146,8 @@ fun LiveRecordingSheet(
 
     val statusText = when {
         !hasPermission -> "Microphone access is required to record. Enable it in Settings."
-        isRecording -> "Recording…"
+        isRecording -> "Recording… (stops automatically at ${timeString(MAX_DURATION_MILLIS)})"
+        hitTimeLimit -> "Reached the ${timeString(MAX_DURATION_MILLIS)} limit — recording stopped. Tap Use Recording to save, or record again to redo it."
         recordedFile != null -> "Tap Use Recording to save, or record again to redo it."
         else -> "Tap to start recording."
     }
@@ -189,6 +200,8 @@ fun LiveRecordingSheet(
         }
     }
 }
+
+private const val MAX_DURATION_MILLIS = 180_000L
 
 private fun timeString(millis: Long): String {
     val totalSeconds = millis / 1000

@@ -13,6 +13,8 @@ object AppSettingsStore {
     private const val PREFS_NAME = "app_settings"
     private const val ENABLED_LANGUAGES_KEY = "enabled_languages"
     private const val COLOR_SCHEME_KEY = "color_scheme"
+    private const val HAS_COMPLETED_FIRST_HOME_LAUNCH_KEY = "has_completed_first_home_launch"
+    private const val DEFAULT_IMPORT_LANGUAGE_KEY = "default_import_language"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -62,5 +64,35 @@ object AppSettingsStore {
 
     fun setColorScheme(context: Context, scheme: AppColorScheme) {
         prefs(context).edit().putString(COLOR_SCHEME_KEY, scheme.name).apply()
+    }
+
+    fun hasCompletedFirstHomeLaunch(context: Context): Boolean =
+        prefs(context).getBoolean(HAS_COMPLETED_FIRST_HOME_LAUNCH_KEY, false)
+
+    fun setHasCompletedFirstHomeLaunch(context: Context) {
+        prefs(context).edit().putBoolean(HAS_COMPLETED_FIRST_HOME_LAUNCH_KEY, true).apply()
+    }
+
+    /**
+     * The language of the most recently connected local dictionary (see
+     * ConnectLocalDictionaryScreen), used to pre-select new Sample imports
+     * so terms parse against the dictionary the user just connected
+     * without re-picking it every time. Falls back to the first enabled
+     * language when nothing's connected, or that language has since been
+     * turned off in "Languages shown on import".
+     */
+    fun preferredDefaultLanguage(context: Context, enabledLanguages: List<SupportedLanguage>): SupportedLanguage {
+        val raw = prefs(context).getString(DEFAULT_IMPORT_LANGUAGE_KEY, null)
+        val saved = raw?.let { name -> SupportedLanguage.entries.firstOrNull { it.name == name } }
+        if (saved != null && saved in enabledLanguages) return saved
+        return enabledLanguages.firstOrNull() ?: SupportedLanguage.CHINESE_TRADITIONAL
+    }
+
+    fun setPreferredDefaultLanguage(context: Context, language: SupportedLanguage) {
+        prefs(context).edit().putString(DEFAULT_IMPORT_LANGUAGE_KEY, language.name).apply()
+    }
+
+    fun clearPreferredDefaultLanguage(context: Context) {
+        prefs(context).edit().remove(DEFAULT_IMPORT_LANGUAGE_KEY).apply()
     }
 }

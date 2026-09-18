@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -19,10 +20,13 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -37,10 +41,13 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -64,6 +71,7 @@ import com.ncubeeight.dejaentendu.samples.SampleTextGenerator
 import com.ncubeeight.dejaentendu.samples.id
 import com.ncubeeight.dejaentendu.samples.kind
 import com.ncubeeight.dejaentendu.samples.importedAtEpochMillis
+import com.ncubeeight.dejaentendu.samples.language
 import com.ncubeeight.dejaentendu.samples.subtitle
 import com.ncubeeight.dejaentendu.samples.title
 import com.ncubeeight.dejaentendu.settings.AppSettingsStore
@@ -80,13 +88,28 @@ private enum class SampleFilter(val label: String, val kind: SampleKind?) {
     IMAGE(SampleKind.IMAGE.label, SampleKind.IMAGE),
 }
 
+/** Only exposed on the All tab — once a filter narrows the list to one kind, newest-first stays the only order. */
+private enum class SampleSort(val label: String) {
+    DATE_NEWEST_FIRST("Date (Newest First)"),
+    DATE_OLDEST_FIRST("Date (Oldest First)"),
+    LANGUAGE("Language"),
+    TITLE("Title");
+
+    fun sort(samples: List<AnySample>): List<AnySample> = when (this) {
+        DATE_NEWEST_FIRST -> samples.sortedByDescending { it.importedAtEpochMillis }
+        DATE_OLDEST_FIRST -> samples.sortedBy { it.importedAtEpochMillis }
+        LANGUAGE -> samples.sortedBy { it.language.displayName.lowercase() }
+        TITLE -> samples.sortedBy { it.title.lowercase() }
+    }
+}
+
 /**
  * The merged "Samples" tab — audio recordings, pasted/typed text, and OCR'd
  * photos all in one filterable, color-coded list. Replaces the old
  * audio-only UploadScreen; its Files-import flow lives on here unchanged.
  * Mirrors iOS's SamplesView.swift.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
     val context = LocalContext.current
@@ -97,6 +120,8 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
     var textSamples by remember { mutableStateOf(ImportedTextSampleStore.load(context)) }
     var imageSamples by remember { mutableStateOf(ImportedImageSampleStore.load(context)) }
     var filter by remember { mutableStateOf(SampleFilter.ALL) }
+    var sortOption by remember { mutableStateOf(SampleSort.DATE_NEWEST_FIRST) }
+    var isSortMenuVisible by remember { mutableStateOf(false) }
 
     var isAddDialogVisible by remember { mutableStateOf(false) }
     var isTextImportVisible by remember { mutableStateOf(false) }
@@ -133,9 +158,11 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
         enabledLanguages = AppSettingsStore.audioImportLanguages(context)
     }
 
-    val allSamples = (audioRecordings.map(AnySample::Audio) + textSamples.map(AnySample::Text) + imageSamples.map(AnySample::Image))
-        .sortedByDescending { it.importedAtEpochMillis }
-    val filteredSamples = filter.kind?.let { kind -> allSamples.filter { it.kind == kind } } ?: allSamples
+    val allSamples = audioRecordings.map(AnySample::Audio) + textSamples.map(AnySample::Text) + imageSamples.map(AnySample::Image)
+    val filteredSamples = run {
+        val base = filter.kind?.let { kind -> allSamples.filter { it.kind == kind } } ?: allSamples
+        if (filter == SampleFilter.ALL) sortOption.sort(base) else base.sortedByDescending { it.importedAtEpochMillis }
+    }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments()
@@ -181,18 +208,18 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
     }
 
     fun presentLanguageSheet() {
-        if (pendingLanguage !in enabledLanguages) pendingLanguage = enabledLanguages.first()
+        pendingLanguage = AppSettingsStore.preferredDefaultLanguage(context, enabledLanguages)
         isLanguageSheetVisible = true
     }
 
     fun presentGenerateLanguageSheet() {
         val allEnabled = AppSettingsStore.enabledLanguagesSorted(context)
-        if (pendingGenerateLanguage !in allEnabled) pendingGenerateLanguage = allEnabled.first()
+        pendingGenerateLanguage = AppSettingsStore.preferredDefaultLanguage(context, allEnabled)
         isGenerateLanguageSheetVisible = true
     }
 
     fun presentRecordLanguageSheet() {
-        if (pendingRecordLanguage !in enabledLanguages) pendingRecordLanguage = enabledLanguages.first()
+        pendingRecordLanguage = AppSettingsStore.preferredDefaultLanguage(context, enabledLanguages)
         isRecordLanguageSheetVisible = true
     }
 
@@ -216,7 +243,29 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Samples") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Samples") },
+                navigationIcon = {
+                    if (filter == SampleFilter.ALL) {
+                        Box {
+                            IconButton(onClick = { isSortMenuVisible = true }) {
+                                Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort")
+                            }
+                            DropdownMenu(expanded = isSortMenuVisible, onDismissRequest = { isSortMenuVisible = false }) {
+                                for (option in SampleSort.entries) {
+                                    DropdownMenuItem(
+                                        text = { Text(option.label) },
+                                        leadingIcon = { RadioButton(selected = option == sortOption, onClick = { sortOption = option; isSortMenuVisible = false }) },
+                                        onClick = { sortOption = option; isSortMenuVisible = false },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { isAddDialogVisible = true }) {
                 Icon(Icons.Filled.Add, contentDescription = "Add Sample")
@@ -225,28 +274,40 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    SampleFilter.entries.forEachIndexed { index, option ->
-                        SegmentedButton(
-                            selected = filter == option,
-                            onClick = { filter = option },
-                            shape = SegmentedButtonDefaults.itemShape(index, SampleFilter.entries.size),
-                        ) {
-                            Text(option.label)
+            // The segmented filter used to float above the list as a
+            // separate Column row; it now lives as the LazyColumn's own
+            // sticky header instead, so it scrolls and pins natively —
+            // mirrors iOS's move from a floating safeAreaInset bar into
+            // the List's own section header ("Deja Segmented").
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                stickyHeader {
+                    SingleChoiceSegmentedButtonRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.background)
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    ) {
+                        SampleFilter.entries.forEachIndexed { index, option ->
+                            SegmentedButton(
+                                selected = filter == option,
+                                onClick = { filter = option },
+                                shape = SegmentedButtonDefaults.itemShape(index, SampleFilter.entries.size),
+                            ) {
+                                Text(option.label)
+                            }
                         }
                     }
                 }
 
                 if (filteredSamples.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                        Text("No samples yet. Import a recording, add text, or scan a photo below.")
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                            Text("No samples yet. Import a recording, add text, or scan a photo below.")
+                        }
                     }
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(filteredSamples, key = { it.id }) { sample ->
-                            SampleRow(sample, onClick = { onSampleClick(sample) }, onDelete = { delete(sample) })
-                        }
+                    items(filteredSamples, key = { it.id }) { sample ->
+                        SampleRow(sample, onClick = { onSampleClick(sample) }, onDelete = { delete(sample) })
                     }
                 }
             }
@@ -442,24 +503,46 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SampleRow(sample: AnySample, onClick: () -> Unit, onDelete: () -> Unit) {
-    ListItem(
-        headlineContent = { Text(sample.title) },
-        supportingContent = { Text(sample.subtitle) },
-        leadingContent = {
-            Box(
-                modifier = Modifier.size(32.dp).background(sample.kind.tintSoft, RoundedCornerShape(9.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(sample.kind.icon, contentDescription = null, tint = sample.kind.tint, modifier = Modifier.size(16.dp))
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                onDelete()
+                true
+            } else {
+                false
             }
         },
-        trailingContent = {
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Close, contentDescription = "Delete")
-            }
-        },
-        modifier = Modifier.clickable(onClick = onClick),
     )
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.error)
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Color.White)
+            }
+        },
+    ) {
+        ListItem(
+            headlineContent = { Text(sample.title) },
+            supportingContent = { Text(sample.subtitle) },
+            leadingContent = {
+                Box(
+                    modifier = Modifier.size(32.dp).background(sample.kind.tintSoft, RoundedCornerShape(9.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(sample.kind.icon, contentDescription = null, tint = sample.kind.tint, modifier = Modifier.size(16.dp))
+                }
+            },
+            modifier = Modifier.clickable(onClick = onClick),
+        )
+    }
 }

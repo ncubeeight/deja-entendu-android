@@ -5,7 +5,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
+
+/**
+ * Whether the app is currently rendering its dark theme — set by
+ * DejaEntenduTheme from the *resolved* darkTheme flag (system setting or
+ * this app's own Appearance override in Settings), so AppColors.home*
+ * below can adapt the same way MaterialTheme's own colors do.
+ */
+val LocalDarkTheme = compositionLocalOf { false }
 
 /**
  * Ported directly from the iOS app's App/AppTheme.swift so both platforms
@@ -18,6 +28,32 @@ object AppColors {
     val ink = Color(0xFF241C16)
     val inkSoft = Color(0xFF7A6F63)
     val line = Color(0xFFECE3D8)
+
+    // Adaptive counterparts for the Home tab's own background/card/text
+    // colors — Home was the only screen painting a fixed light surface.
+    // Without these, dark mode left Home's status bar area and card text
+    // sitting on a surface that never actually went dark. background/
+    // surface/ink/inkSoft/line above stay fixed deliberately: ink also has
+    // to stay dark everywhere it sits against the always-light `rainbow`
+    // word-highlight colors in transcript word tokens, so making it
+    // adaptive would reintroduce that exact contrast bug there.
+    // Mirrors iOS's AppTheme.homeBackground/etc.
+    private val homeBackgroundLight = Color(0xFFFBF6EF)
+    private val homeBackgroundDark = Color(0xFF17130F)
+    private val homeSurfaceLight = Color(0xFFFFFDF9)
+    private val homeSurfaceDark = Color(0xFF241F18)
+    private val homeInkLight = Color(0xFF241C16)
+    private val homeInkDark = Color(0xFFF5EFE6)
+    private val homeInkSoftLight = Color(0xFF7A6F63)
+    private val homeInkSoftDark = Color(0xFFAEA192)
+    private val homeLineLight = Color(0xFFECE3D8)
+    private val homeLineDark = Color(0xFF39332A)
+
+    val homeBackground: Color @Composable get() = if (LocalDarkTheme.current) homeBackgroundDark else homeBackgroundLight
+    val homeSurface: Color @Composable get() = if (LocalDarkTheme.current) homeSurfaceDark else homeSurfaceLight
+    val homeInk: Color @Composable get() = if (LocalDarkTheme.current) homeInkDark else homeInkLight
+    val homeInkSoft: Color @Composable get() = if (LocalDarkTheme.current) homeInkSoftDark else homeInkSoftLight
+    val homeLine: Color @Composable get() = if (LocalDarkTheme.current) homeLineDark else homeLineLight
 
     val coral = Color(0xFFFF6B4A)
     val coralSoft = Color(0xFFFFE4DA)
@@ -75,8 +111,10 @@ private val DejaEntenduDarkColorScheme = darkColorScheme(
 
 @Composable
 fun DejaEntenduTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) DejaEntenduDarkColorScheme else DejaEntenduLightColorScheme,
-        content = content,
-    )
+    CompositionLocalProvider(LocalDarkTheme provides darkTheme) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) DejaEntenduDarkColorScheme else DejaEntenduLightColorScheme,
+            content = content,
+        )
+    }
 }
