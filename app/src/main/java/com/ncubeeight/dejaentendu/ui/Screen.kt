@@ -26,6 +26,9 @@ sealed interface Screen {
     data object CustomGlossary : Screen
 
     @Serializable
+    data object ConnectLocalDictionary : Screen
+
+    @Serializable
     data object Iroha : Screen
 
     @Serializable

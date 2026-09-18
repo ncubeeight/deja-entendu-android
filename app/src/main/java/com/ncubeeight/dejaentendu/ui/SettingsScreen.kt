@@ -12,7 +12,9 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -30,21 +32,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ncubeeight.dejaentendu.settings.AppColorScheme
 import com.ncubeeight.dejaentendu.settings.AppSettingsState
 import com.ncubeeight.dejaentendu.settings.AppSettingsStore
+import com.ncubeeight.dejaentendu.studynotes.ConnectedDictionaryStore
 import com.ncubeeight.dejaentendu.transcription.SupportedLanguage
 
-/** Mirrors iOS's SettingsView.swift: appearance, Custom Glossary, then a searchable language filter. */
+/** Mirrors iOS's SettingsView.swift: appearance, Custom Glossary, Connect Local Dictionary, then a searchable language filter. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onCustomGlossaryClick: () -> Unit) {
+fun SettingsScreen(onCustomGlossaryClick: () -> Unit, onConnectDictionaryClick: () -> Unit) {
     val context = LocalContext.current
     var enabledLanguages by remember { mutableStateOf(AppSettingsStore.enabledLanguages(context)) }
     var colorScheme by remember { mutableStateOf(AppSettingsStore.colorScheme(context)) }
     var languageSearchText by remember { mutableStateOf("") }
+    val connectedDictionary = remember { ConnectedDictionaryStore.load(context) }
     // This screen (unlike Home/Vocabulary/Flashcard) doesn't hardcode
     // AppColors on top of a hardcoded AppColors.background — it follows
     // MaterialTheme's live scheme, so its text must use MaterialTheme's
@@ -112,8 +117,34 @@ fun SettingsScreen(onCustomGlossaryClick: () -> Unit) {
                     )
                     Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = onSurfaceVariant)
                 }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onConnectDictionaryClick)
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (connectedDictionary != null) {
+                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color(0xFF2BBAA3))
+                    } else {
+                        Icon(Icons.Filled.CreateNewFolder, contentDescription = null, tint = onBackground)
+                    }
+                    Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+                        Text("Connect Local Dictionary", color = onBackground)
+                        if (connectedDictionary != null) {
+                            Text(
+                                "${connectedDictionary.fileName} · ${connectedDictionary.language.displayName}",
+                                color = onSurfaceVariant,
+                                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                            )
+                        }
+                    }
+                    Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = onSurfaceVariant)
+                }
+
                 Text(
-                    "Add your own term definitions — useful for specialized vocabulary an on-device model might not know, and still works on devices without one.",
+                    "Add your own term definitions — useful for specialized vocabulary an on-device model might not know, and still works on devices without one. Connect a dictionary file from Files to bulk-import its terms instead of typing them in one at a time.",
                     color = onSurfaceVariant,
                 )
             }
@@ -137,7 +168,12 @@ fun SettingsScreen(onCustomGlossaryClick: () -> Unit) {
                             modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(language.displayName, color = onBackground, modifier = Modifier.weight(1f))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(language.displayName, color = onBackground)
+                                if (connectedDictionary?.language == language) {
+                                    Text("Connected dictionary", color = onSurfaceVariant, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                }
+                            }
                             Switch(
                                 checked = language in enabledLanguages,
                                 onCheckedChange = { setLanguageEnabled(language, it) },

@@ -60,7 +60,7 @@ fun TextImportSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
     // enabled language is offered here, unlike audio/photo import.
     val enabledLanguages = remember { AppSettingsStore.enabledLanguagesSorted(context) }
     var body by remember { mutableStateOf("") }
-    var language by remember { mutableStateOf(enabledLanguages.first()) }
+    var language by remember { mutableStateOf(AppSettingsStore.preferredDefaultLanguage(context, enabledLanguages)) }
     var isImportingFile by remember { mutableStateOf(false) }
     var fileImportError by remember { mutableStateOf<String?>(null) }
     val sheetState = rememberModalBottomSheetState()

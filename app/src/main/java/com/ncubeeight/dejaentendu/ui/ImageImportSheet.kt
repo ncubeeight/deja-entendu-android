@@ -55,7 +55,7 @@ fun ImageImportSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
     // for are offered here — OCR coverage doesn't line up with speech
     // coverage (e.g. Norwegian has OCR but no speech recognition).
     val enabledLanguages = remember { AppSettingsStore.photoImportLanguages(context) }
-    var language by remember { mutableStateOf(enabledLanguages.first()) }
+    var language by remember { mutableStateOf(AppSettingsStore.preferredDefaultLanguage(context, enabledLanguages)) }
     var isProcessing by remember { mutableStateOf(false) }
     var ingestedSample by remember { mutableStateOf<ImportedImageSample?>(null) }
     var editableText by remember { mutableStateOf("") }

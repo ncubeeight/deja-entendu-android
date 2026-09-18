@@ -18,12 +18,14 @@ class TextFileImportException(message: String) : Exception(message)
 object TextFileImporter {
 
     fun extractText(context: Context, uri: Uri): String {
-        val displayName = queryDisplayName(context, uri).orEmpty()
+        val displayName = displayName(context, uri).orEmpty()
         val mimeType = context.contentResolver.getType(uri)
         val isPdf = mimeType == "application/pdf" || displayName.lowercase().endsWith(".pdf")
 
         return if (isPdf) extractPdfText(context, uri) else extractPlainText(context, uri)
     }
+
+    fun displayName(context: Context, uri: Uri): String? = queryDisplayName(context, uri)
 
     private fun extractPdfText(context: Context, uri: Uri): String {
         // Loads font/glyph resources PDFTextStripper needs — idempotent,
