@@ -21,6 +21,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
@@ -115,6 +117,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val speaker = rememberSampleSpeaker()
 
     var audioRecordings by remember { mutableStateOf(ImportedRecordingStore.load(context)) }
     var textSamples by remember { mutableStateOf(ImportedTextSampleStore.load(context)) }
@@ -307,7 +310,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
                     }
                 } else {
                     items(filteredSamples, key = { it.id }) { sample ->
-                        SampleRow(sample, onClick = { onSampleClick(sample) }, onDelete = { delete(sample) })
+                        SampleRow(sample, speaker, onClick = { onSampleClick(sample) }, onDelete = { delete(sample) })
                     }
                 }
             }
@@ -505,7 +508,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SampleRow(sample: AnySample, onClick: () -> Unit, onDelete: () -> Unit) {
+private fun SampleRow(sample: AnySample, speaker: SampleSpeaker, onClick: () -> Unit, onDelete: () -> Unit) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             if (value == SwipeToDismissBoxValue.EndToStart) {
@@ -542,7 +545,29 @@ private fun SampleRow(sample: AnySample, onClick: () -> Unit, onDelete: () -> Un
                     Icon(sample.kind.icon, contentDescription = null, tint = sample.kind.tint, modifier = Modifier.size(16.dp))
                 }
             },
+            // Audio samples have no text until they're transcribed, so only
+            // text and photo samples can be read aloud from the list.
+            trailingContent = sampleText(sample)?.let { text ->
+                {
+                    val isSpeaking = speaker.speakingId == sample.id
+                    IconButton(
+                        onClick = { speaker.toggle(sample.id, text, sample.language) },
+                        enabled = isSpeaking || speaker.canSpeak(sample.language),
+                    ) {
+                        Icon(
+                            if (isSpeaking) Icons.Filled.Stop else Icons.AutoMirrored.Filled.VolumeUp,
+                            contentDescription = if (isSpeaking) "Stop speaking" else "Speak",
+                        )
+                    }
+                }
+            },
             modifier = Modifier.clickable(onClick = onClick),
         )
     }
 }
+
+private fun sampleText(sample: AnySample): String? = when (sample) {
+    is AnySample.Text -> sample.sample.body
+    is AnySample.Image -> sample.sample.recognizedText
+    is AnySample.Audio -> null
+}?.takeIf { it.isNotBlank() }

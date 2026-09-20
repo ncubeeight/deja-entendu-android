@@ -64,10 +64,12 @@ fun AppAlertDialog(
     confirmButton: @Composable () -> Unit,
     title: @Composable () -> Unit,
     text: @Composable () -> Unit,
+    dismissButton: (@Composable () -> Unit)? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
         confirmButton = { WithAppFontScale(confirmButton) },
+        dismissButton = dismissButton?.let { button -> { WithAppFontScale(button) } },
         title = { WithAppFontScale(title) },
         text = { WithAppFontScale(text) },
     )

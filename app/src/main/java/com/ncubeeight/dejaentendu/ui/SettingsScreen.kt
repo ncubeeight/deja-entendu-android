@@ -3,6 +3,8 @@ package com.ncubeeight.dejaentendu.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ncubeeight.dejaentendu.settings.AppColorScheme
 import com.ncubeeight.dejaentendu.settings.AppFontScale
@@ -44,14 +47,14 @@ import com.ncubeeight.dejaentendu.studynotes.ConnectedDictionaryStore
 import com.ncubeeight.dejaentendu.transcription.SupportedLanguage
 
 /** Mirrors iOS's SettingsView.swift: appearance, Custom Glossary, Connect Local Dictionary, then a searchable language filter. */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(onCustomGlossaryClick: () -> Unit, onConnectDictionaryClick: () -> Unit) {
     val context = LocalContext.current
     var enabledLanguages by remember { mutableStateOf(AppSettingsStore.enabledLanguages(context)) }
     var colorScheme by remember { mutableStateOf(AppSettingsStore.colorScheme(context)) }
     var languageSearchText by remember { mutableStateOf("") }
-    val connectedDictionary = remember { ConnectedDictionaryStore.load(context) }
+    val connectedDictionaries = remember { ConnectedDictionaryStore.load(context) }
     // This screen (unlike Home/Vocabulary/Flashcard) doesn't hardcode
     // AppColors on top of a hardcoded AppColors.background — it follows
     // MaterialTheme's live scheme, so its text must use MaterialTheme's
@@ -94,16 +97,18 @@ fun SettingsScreen(onCustomGlossaryClick: () -> Unit, onConnectDictionaryClick: 
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Appearance", color = onSurfaceVariant)
-                for (scheme in AppColorScheme.entries) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(selected = scheme == colorScheme, onClick = { selectColorScheme(scheme) })
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = scheme == colorScheme, onClick = { selectColorScheme(scheme) })
-                        Text(scheme.displayName, color = onBackground)
+                // One line at normal sizes; whole options wrap to the next
+                // line (rather than breaking mid-word) at the largest text sizes.
+                FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    for (scheme in AppColorScheme.entries) {
+                        Row(
+                            modifier = Modifier
+                                .selectable(selected = scheme == colorScheme, onClick = { selectColorScheme(scheme) }),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = scheme == colorScheme, onClick = { selectColorScheme(scheme) })
+                            Text(scheme.displayName, color = onBackground)
+                        }
                     }
                 }
             }
@@ -131,7 +136,7 @@ fun SettingsScreen(onCustomGlossaryClick: () -> Unit, onConnectDictionaryClick: 
                     ) { Text("A+") }
                 }
                 Text(
-                    "Makes text larger across the whole app — buttons, Home, Samples, Vocabulary, and flashcards. Applies on top of your phone's own font size.",
+                    "Makes text larger or smaller across the whole app — buttons, Home, Samples, Vocabulary, and flashcards. Applies on top of your phone's own font size.",
                     color = onSurfaceVariant,
                 )
             }
@@ -162,16 +167,18 @@ fun SettingsScreen(onCustomGlossaryClick: () -> Unit, onConnectDictionaryClick: 
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (connectedDictionary != null) {
+                    if (connectedDictionaries.isNotEmpty()) {
                         Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color(0xFF2BBAA3))
                     } else {
                         Icon(Icons.Filled.CreateNewFolder, contentDescription = null, tint = onBackground)
                     }
                     Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
                         Text("Connect Local Dictionary", color = onBackground)
-                        if (connectedDictionary != null) {
+                        if (connectedDictionaries.isNotEmpty()) {
                             Text(
-                                "${connectedDictionary.fileName} · ${connectedDictionary.language.displayName}",
+                                connectedDictionaries.joinToString(", ") { it.language.displayName },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 color = onSurfaceVariant,
                                 fontSize = MaterialTheme.typography.bodySmall.fontSize,
                             )
@@ -207,7 +214,7 @@ fun SettingsScreen(onCustomGlossaryClick: () -> Unit, onConnectDictionaryClick: 
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(language.displayName, color = onBackground)
-                                if (connectedDictionary?.language == language) {
+                                if (connectedDictionaries.any { it.language == language }) {
                                     Text("Connected dictionary", color = onSurfaceVariant, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 }
                             }
@@ -219,7 +226,7 @@ fun SettingsScreen(onCustomGlossaryClick: () -> Unit, onConnectDictionaryClick: 
                     }
                 }
                 Text(
-                    "Turn off languages you don't use to simplify the picker. At least one must stay on.",
+                    "Turn off languages you don't use to simplify the picker. At least one must stay on. A language added by connecting a dictionary appears here too — turning it off hides it from the picker and pauses that dictionary's definitions without disconnecting it.",
                     color = onSurfaceVariant,
                 )
             }

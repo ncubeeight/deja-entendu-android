@@ -10,6 +10,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.ncubeeight.dejaentendu.transcription.CustomLanguageStore
 import com.ncubeeight.dejaentendu.ui.WithAppFontScale
 import com.ncubeeight.dejaentendu.settings.AppColorScheme
 import com.ncubeeight.dejaentendu.settings.AppSettingsState
@@ -29,6 +30,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Read synchronously so the first frame already uses the saved text
         // size instead of flashing at the default size first.
+        CustomLanguageStore.init(this)
         AppSettingsState.fontScale.value = AppSettingsStore.fontScale(this)
         setContent {
             val context = LocalContext.current

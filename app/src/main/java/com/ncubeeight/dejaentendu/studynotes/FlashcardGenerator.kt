@@ -174,6 +174,11 @@ private fun pronunciationSystemHint(language: SupportedLanguage): String = when 
     SupportedLanguage.ARABIC ->
         "A plain-English phonetic transliteration of the Arabic pronunciation " +
             "(e.g. 'شكرا' → 'SHOO-kran')."
+    // A language the user added by connecting a dictionary (Navajo, say) —
+    // no romanization scheme to name, so leave it to the model.
+    else ->
+        "A plain-English phonetic transliteration of the ${language.displayName} " +
+            "pronunciation, in whatever standard romanization that language uses."
 }
 
 /**

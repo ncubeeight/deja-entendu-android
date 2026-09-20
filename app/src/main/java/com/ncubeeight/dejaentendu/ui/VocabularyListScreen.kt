@@ -98,6 +98,7 @@ fun VocabularyListScreen(onEntryClick: (VocabularyEntry) -> Unit) {
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, shareText)
+            putExtra(Intent.EXTRA_SUBJECT, "My Déjà Entendu vocabulary")
         }
         context.startActivity(Intent.createChooser(sendIntent, null))
     }

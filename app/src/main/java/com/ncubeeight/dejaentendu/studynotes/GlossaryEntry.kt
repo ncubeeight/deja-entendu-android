@@ -24,6 +24,13 @@ data class GlossaryEntry(
     val language: SupportedLanguage,
     val addedAtEpochMillis: Long,
     val source: GlossarySource = GlossarySource.MANUAL,
+    /**
+     * Which ConnectedDictionary contributed this term; null for hand-typed
+     * terms. Entries saved when only one dictionary could be connected have
+     * no ID and are stamped with that one dictionary's (see
+     * ConnectedDictionaryStore.load).
+     */
+    val dictionaryId: String? = null,
 )
 
 /**

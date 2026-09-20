@@ -1,6 +1,7 @@
 package com.ncubeeight.dejaentendu.studynotes
 
 import android.content.Context
+import com.ncubeeight.dejaentendu.settings.AppSettingsStore
 import com.ncubeeight.dejaentendu.transcription.SupportedLanguage
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -33,11 +34,18 @@ object GlossaryStore {
     /**
      * Case-insensitive exact match on term, preferring an entry tagged with
      * [language] when there's ambiguity (the same spelled word could exist
-     * in more than one language's glossary). Falls back to any match if
-     * the term's language isn't known.
+     * in more than one language's glossary). Falls back to any match if the
+     * term's language isn't known. Terms from a connected dictionary only
+     * count while that dictionary's language is toggled on in Settings'
+     * "Languages shown on import" — that toggle is how a connected
+     * dictionary is turned off and on without disconnecting it. Hand-typed
+     * terms always apply.
      */
     fun definition(context: Context, term: String, language: SupportedLanguage?): String? {
-        val matches = load(context).filter { it.term.equals(term, ignoreCase = true) }
+        val enabled = AppSettingsStore.enabledLanguages(context)
+        val matches = load(context).filter {
+            it.term.equals(term, ignoreCase = true) && (it.source == GlossarySource.MANUAL || it.language in enabled)
+        }
         if (language != null) {
             matches.firstOrNull { it.language == language }?.let { return it.definition }
         }

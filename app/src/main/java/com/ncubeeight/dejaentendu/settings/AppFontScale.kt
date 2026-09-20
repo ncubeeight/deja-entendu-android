@@ -7,11 +7,13 @@ package com.ncubeeight.dejaentendu.settings
  * tabs alike, without touching each screen individually.
  */
 enum class AppFontScale(val multiplier: Float, val displayName: String) {
+    SMALLEST(0.75f, "Smallest"),
+    SMALL(0.875f, "Small"),
     DEFAULT(1.0f, "Default"),
     LARGE(1.15f, "Large"),
     EXTRA_LARGE(1.3f, "Extra Large"),
     HUGE(1.5f, "Huge"),
-    MAXIMUM(1.75f, "Maximum");
+    MAXIMUM(1.75f, "Max");
 
-    val percentLabel: String get() = "${(multiplier * 100).toInt()}%"
+    val percentLabel: String get() = "${Math.round(multiplier * 100)}%"
 }

@@ -12,10 +12,13 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -89,7 +92,14 @@ fun AppNavigation() {
                             }
                         },
                         icon = { Icon(tab.icon, contentDescription = tab.label) },
-                        label = { Text(tab.label) },
+                        // The bottom bar's slots are too narrow for the largest text sizes
+                        // (labels broke mid-word), so its labels cap at 115%.
+                        label = {
+                            val density = LocalDensity.current
+                            CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.15f))) {
+                                Text(tab.label, maxLines = 1, softWrap = false)
+                            }
+                        },
                     )
                 }
             }
@@ -129,7 +139,14 @@ fun AppNavigation() {
                 )
             }
             composable<Screen.CustomGlossary> {
-                CustomGlossaryScreen()
+                CustomGlossaryScreen(
+                    onOpenGlossary = { id, title -> navController.navigate(Screen.GlossaryTerms(id, title)) },
+                    onConnectDictionaryClick = { navController.navigate(Screen.ConnectLocalDictionary) },
+                )
+            }
+            composable<Screen.GlossaryTerms> { entry ->
+                val route: Screen.GlossaryTerms = entry.toRoute()
+                GlossaryTermsScreen(route.dictionaryId, route.title)
             }
             composable<Screen.ConnectLocalDictionary> {
                 ConnectLocalDictionaryScreen(onDone = { navController.popBackStack() })

@@ -28,6 +28,10 @@ sealed interface Screen {
     @Serializable
     data object ConnectLocalDictionary : Screen
 
+    /** [dictionaryId] null means the user's own hand-typed terms. */
+    @Serializable
+    data class GlossaryTerms(val dictionaryId: String? = null, val title: String) : Screen
+
     @Serializable
     data object Iroha : Screen
 
