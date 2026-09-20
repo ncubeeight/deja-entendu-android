@@ -251,7 +251,7 @@ private fun TranscriptWordToken(
             .padding(horizontal = 3.dp, vertical = 1.dp),
     )
 
-    DropdownMenu(expanded = isExpanded, onDismissRequest = { isExpanded = false }) {
+    AppDropdownMenu(expanded = isExpanded, onDismissRequest = { isExpanded = false }) {
         Column(
             modifier = Modifier.widthIn(min = 180.dp, max = 260.dp).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),

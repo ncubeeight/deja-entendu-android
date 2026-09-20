@@ -19,6 +19,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -36,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ncubeeight.dejaentendu.settings.AppColorScheme
+import com.ncubeeight.dejaentendu.settings.AppFontScale
 import com.ncubeeight.dejaentendu.settings.AppSettingsState
 import com.ncubeeight.dejaentendu.settings.AppSettingsStore
 import com.ncubeeight.dejaentendu.studynotes.ConnectedDictionaryStore
@@ -72,6 +74,13 @@ fun SettingsScreen(onCustomGlossaryClick: () -> Unit, onConnectDictionaryClick: 
         AppSettingsStore.setEnabledLanguages(context, updated)
     }
 
+    val fontScale = AppSettingsState.fontScale.value
+
+    fun selectFontScale(scale: AppFontScale) {
+        AppSettingsStore.setFontScale(context, scale)
+        AppSettingsState.fontScale.value = scale
+    }
+
     fun selectColorScheme(scheme: AppColorScheme) {
         colorScheme = scheme
         AppSettingsStore.setColorScheme(context, scheme)
@@ -97,6 +106,34 @@ fun SettingsScreen(onCustomGlossaryClick: () -> Unit, onConnectDictionaryClick: 
                         Text(scheme.displayName, color = onBackground)
                     }
                 }
+            }
+
+            HorizontalDivider()
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Text Size", color = onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = { selectFontScale(AppFontScale.entries[fontScale.ordinal - 1]) },
+                        enabled = fontScale.ordinal > 0,
+                    ) { Text("A−") }
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(fontScale.displayName, color = onBackground)
+                        Text(fontScale.percentLabel, color = onSurfaceVariant)
+                    }
+                    OutlinedButton(
+                        onClick = { selectFontScale(AppFontScale.entries[fontScale.ordinal + 1]) },
+                        enabled = fontScale.ordinal < AppFontScale.entries.lastIndex,
+                    ) { Text("A+") }
+                }
+                Text(
+                    "Makes text larger across the whole app — buttons, Home, Samples, Vocabulary, and flashcards. Applies on top of your phone's own font size.",
+                    color = onSurfaceVariant,
+                )
             }
 
             HorizontalDivider()

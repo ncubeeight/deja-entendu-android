@@ -152,7 +152,7 @@ fun LiveRecordingSheet(
         else -> "Tap to start recording."
     }
 
-    ModalBottomSheet(onDismissRequest = { cancelAndDismiss() }, sheetState = sheetState) {
+    AppModalBottomSheet(onDismissRequest = { cancelAndDismiss() }, sheetState = sheetState) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

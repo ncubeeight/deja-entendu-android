@@ -1,5 +1,6 @@
 package com.ncubeeight.dejaentendu.transcription
 
+import com.ncubeeight.dejaentendu.GenAiStatus
 import android.media.AudioFormat
 import android.os.ParcelFileDescriptor
 import com.google.mlkit.genai.common.DownloadStatus
@@ -54,7 +55,7 @@ object SpeechTranscriberService {
                     throw TranscriptionUnavailableException("model download failed: ${outcome.e.message}")
                 }
             }
-            else -> throw TranscriptionUnavailableException("model unavailable (status=$status)")
+            else -> throw TranscriptionUnavailableException(GenAiStatus.unavailableMessage(status))
         }
 
         val pfd = ParcelFileDescriptor.open(pcmFile, ParcelFileDescriptor.MODE_READ_ONLY)

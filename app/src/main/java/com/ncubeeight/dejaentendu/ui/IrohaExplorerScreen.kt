@@ -200,7 +200,7 @@ private fun IrohaWordToken(item: IrohaWord) {
             .padding(horizontal = 3.dp, vertical = 2.dp),
     )
 
-    DropdownMenu(expanded = isExpanded, onDismissRequest = { isExpanded = false }) {
+    AppDropdownMenu(expanded = isExpanded, onDismissRequest = { isExpanded = false }) {
         Column(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

@@ -187,7 +187,7 @@ fun HomeScreen(
     }
 
     if (isAddSheetVisible) {
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { isAddSheetVisible = false },
             title = { Text("Add to Déjà Entendu") },
             text = {

@@ -12,7 +12,7 @@ enum class OcrScript { LATIN, CHINESE, JAPANESE, KOREAN, DEVANAGARI }
 
 /**
  * Languages the transcription pipeline can detect and transcribe, mirroring
- * iOS's SupportedLanguage.swift (now 27 languages there) plus Czech, which
+ * iOS's SupportedLanguage.swift (40 languages there as of 2026-09) plus Czech, which
  * Gemini Nano supports but Apple Intelligence doesn't. Adding a language
  * means adding a case here — pickers, prompts, and transcription should all
  * read from this list.
@@ -105,4 +105,14 @@ enum class SupportedLanguage(
     TELUGU("Telugu", Locale.forLanguageTag("te-IN"), null, null),
     KANNADA("Kannada", Locale.forLanguageTag("kn-IN"), null, null),
     AMHARIC("Amharic", Locale.forLanguageTag("am-ET"), null, null),
+
+    // Added 2026-09-20 to catch up with iOS (Finnish/Estonian/Polish/Arabic
+    // landed there after the original port). Speech recognition is left
+    // unset until each is checked against Google's GenAI Speech Recognition
+    // language list — typed text, Generate Sample, and (for the Latin-script
+    // ones) photo scan all work regardless. Arabic has no ML Kit OCR script.
+    FINNISH("Finnish", Locale.forLanguageTag("fi-FI"), null, OcrScript.LATIN),
+    ESTONIAN("Estonian", Locale.forLanguageTag("et-EE"), null, OcrScript.LATIN),
+    POLISH("Polish", Locale.forLanguageTag("pl-PL"), null, OcrScript.LATIN),
+    ARABIC("Arabic", Locale.forLanguageTag("ar-SA"), null, null),
 }

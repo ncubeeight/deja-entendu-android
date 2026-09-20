@@ -10,6 +10,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.ncubeeight.dejaentendu.ui.WithAppFontScale
 import com.ncubeeight.dejaentendu.settings.AppColorScheme
 import com.ncubeeight.dejaentendu.settings.AppSettingsState
 import com.ncubeeight.dejaentendu.settings.AppSettingsStore
@@ -26,6 +27,9 @@ import com.ncubeeight.dejaentendu.ui.theme.DejaEntenduTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Read synchronously so the first frame already uses the saved text
+        // size instead of flashing at the default size first.
+        AppSettingsState.fontScale.value = AppSettingsStore.fontScale(this)
         setContent {
             val context = LocalContext.current
             LaunchedEffect(Unit) {
@@ -39,9 +43,14 @@ class MainActivity : ComponentActivity() {
                 AppColorScheme.DARK -> true
             }
 
-            DejaEntenduTheme(darkTheme = darkTheme) {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    AppNavigation()
+            // Scales every sp-sized piece of text app-wide (buttons and all
+            // content tabs) in one place. Sheets/dialogs/menus render in
+            // their own windows and re-apply this via WithAppFontScale.
+            WithAppFontScale {
+                DejaEntenduTheme(darkTheme = darkTheme) {
+                    Surface(modifier = Modifier.fillMaxSize()) {
+                        AppNavigation()
+                    }
                 }
             }
         }

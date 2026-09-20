@@ -1,5 +1,6 @@
 package com.ncubeeight.dejaentendu.studynotes
 
+import com.ncubeeight.dejaentendu.GenAiStatus
 import com.google.mlkit.genai.common.DownloadStatus
 import com.google.mlkit.genai.common.FeatureStatus
 import com.google.mlkit.genai.common.GenAiException
@@ -53,7 +54,7 @@ object StudyNoteGenerator {
                     throw StudyNoteUnavailableException("model download failed: ${outcome.e.message}")
                 }
             }
-            else -> throw StudyNoteUnavailableException("model unavailable (status=$status)")
+            else -> throw StudyNoteUnavailableException(GenAiStatus.unavailableMessage(status))
         }
 
         // Structured output (@Generable) is a separate capability gate from

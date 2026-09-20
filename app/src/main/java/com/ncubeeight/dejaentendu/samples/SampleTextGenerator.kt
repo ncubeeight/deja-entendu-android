@@ -1,5 +1,6 @@
 package com.ncubeeight.dejaentendu.samples
 
+import com.ncubeeight.dejaentendu.GenAiStatus
 import com.google.mlkit.genai.common.DownloadStatus
 import com.google.mlkit.genai.common.FeatureStatus
 import com.google.mlkit.genai.common.GenAiException
@@ -68,7 +69,7 @@ object SampleTextGenerator {
                     throw SampleTextGeneratorUnavailableException("model download failed: ${outcome.e.message}")
                 }
             }
-            else -> throw SampleTextGeneratorUnavailableException("model unavailable (status=$status)")
+            else -> throw SampleTextGeneratorUnavailableException(GenAiStatus.unavailableMessage(status))
         }
 
         if (!model.isStructuredOutputFeatureAvailable()) {

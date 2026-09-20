@@ -13,19 +13,35 @@ object AppSettingsStore {
     private const val PREFS_NAME = "app_settings"
     private const val ENABLED_LANGUAGES_KEY = "enabled_languages"
     private const val COLOR_SCHEME_KEY = "color_scheme"
+    private const val FONT_SCALE_KEY = "font_scale"
     private const val HAS_COMPLETED_FIRST_HOME_LAUNCH_KEY = "has_completed_first_home_launch"
     private const val DEFAULT_IMPORT_LANGUAGE_KEY = "default_import_language"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    /** Empty/unparseable means "everything enabled" — same default as iOS before Settings is ever visited. */
+    /**
+     * What a first run shows before the user has ever visited Settings —
+     * all 40+ languages on read as overwhelming in every picker, so this is
+     * a small starter set instead; the rest are one toggle away. Mirrors
+     * iOS's AppSettings.defaultEnabledLanguages (plus Portuguese).
+     */
+    val defaultEnabledLanguages: Set<SupportedLanguage> = setOf(
+        SupportedLanguage.FRENCH,
+        SupportedLanguage.CHINESE_TRADITIONAL,
+        SupportedLanguage.CHINESE_SIMPLIFIED,
+        SupportedLanguage.PORTUGUESE,
+        SupportedLanguage.JAPANESE,
+        SupportedLanguage.GERMAN,
+    )
+
+    /** Nothing saved (or nothing parseable) means the starter set above; a saved choice is always kept as-is. */
     fun enabledLanguages(context: Context): Set<SupportedLanguage> {
-        val raw = prefs(context).getString(ENABLED_LANGUAGES_KEY, null) ?: return SupportedLanguage.entries.toSet()
+        val raw = prefs(context).getString(ENABLED_LANGUAGES_KEY, null) ?: return defaultEnabledLanguages
         val parsed = raw.split(",").mapNotNull { name ->
             SupportedLanguage.entries.firstOrNull { it.name == name }
         }.toSet()
-        return parsed.ifEmpty { SupportedLanguage.entries.toSet() }
+        return parsed.ifEmpty { defaultEnabledLanguages }
     }
 
     fun setEnabledLanguages(context: Context, languages: Set<SupportedLanguage>) {
@@ -64,6 +80,15 @@ object AppSettingsStore {
 
     fun setColorScheme(context: Context, scheme: AppColorScheme) {
         prefs(context).edit().putString(COLOR_SCHEME_KEY, scheme.name).apply()
+    }
+
+    fun fontScale(context: Context): AppFontScale {
+        val raw = prefs(context).getString(FONT_SCALE_KEY, null) ?: return AppFontScale.DEFAULT
+        return AppFontScale.entries.firstOrNull { it.name == raw } ?: AppFontScale.DEFAULT
+    }
+
+    fun setFontScale(context: Context, scale: AppFontScale) {
+        prefs(context).edit().putString(FONT_SCALE_KEY, scale.name).apply()
     }
 
     fun hasCompletedFirstHomeLaunch(context: Context): Boolean =

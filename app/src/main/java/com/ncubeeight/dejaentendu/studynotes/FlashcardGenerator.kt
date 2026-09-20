@@ -1,5 +1,6 @@
 package com.ncubeeight.dejaentendu.studynotes
 
+import com.ncubeeight.dejaentendu.GenAiStatus
 import com.google.mlkit.genai.common.DownloadStatus
 import com.google.mlkit.genai.common.FeatureStatus
 import com.google.mlkit.genai.common.GenAiException
@@ -161,6 +162,18 @@ private fun pronunciationSystemHint(language: SupportedLanguage): String = when 
     SupportedLanguage.AMHARIC ->
         "A plain-English phonetic transliteration of the Amharic (Ge'ez " +
             "script) pronunciation (e.g. 'አመሰግናለሁ' → 'ah-meh-seh-gih-nah-leh-hu')."
+    SupportedLanguage.FINNISH ->
+        "A plain-English phonetic approximation of Finnish pronunciation (e.g. " +
+            "'Kiitos' → 'KEE-tohs')."
+    SupportedLanguage.ESTONIAN ->
+        "A plain-English phonetic approximation of Estonian pronunciation (e.g. " +
+            "'Aitäh' → 'EYE-tah')."
+    SupportedLanguage.POLISH ->
+        "A plain-English phonetic approximation of Polish pronunciation (e.g. " +
+            "'Dziękuję' → 'jen-KOO-yeh')."
+    SupportedLanguage.ARABIC ->
+        "A plain-English phonetic transliteration of the Arabic pronunciation " +
+            "(e.g. 'شكرا' → 'SHOO-kran')."
 }
 
 /**
@@ -207,7 +220,7 @@ object FlashcardGenerator {
                     throw FlashcardUnavailableException("model download failed: ${outcome.e.message}")
                 }
             }
-            else -> throw FlashcardUnavailableException("model unavailable (status=$status)")
+            else -> throw FlashcardUnavailableException(GenAiStatus.unavailableMessage(status))
         }
 
         if (!model.isStructuredOutputFeatureAvailable()) {

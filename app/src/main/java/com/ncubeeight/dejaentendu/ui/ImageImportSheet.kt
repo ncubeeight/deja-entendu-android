@@ -83,7 +83,7 @@ fun ImageImportSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
         }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    AppModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState()).imePadding().padding(20.dp)) {
             Text("Scan Photo")
 

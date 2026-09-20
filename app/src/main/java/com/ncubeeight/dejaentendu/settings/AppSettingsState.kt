@@ -13,4 +13,5 @@ import androidx.compose.runtime.mutableStateOf
  */
 object AppSettingsState {
     val colorScheme = mutableStateOf(AppColorScheme.SYSTEM)
+    val fontScale = mutableStateOf(AppFontScale.DEFAULT)
 }

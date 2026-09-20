@@ -252,7 +252,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
                             IconButton(onClick = { isSortMenuVisible = true }) {
                                 Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort")
                             }
-                            DropdownMenu(expanded = isSortMenuVisible, onDismissRequest = { isSortMenuVisible = false }) {
+                            AppDropdownMenu(expanded = isSortMenuVisible, onDismissRequest = { isSortMenuVisible = false }) {
                                 for (option in SampleSort.entries) {
                                     DropdownMenuItem(
                                         text = { Text(option.label) },
@@ -334,7 +334,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
 
     if (isAddDialogVisible) {
         val sheetState = rememberModalBottomSheetState()
-        ModalBottomSheet(onDismissRequest = { isAddDialogVisible = false }, sheetState = sheetState) {
+        AppModalBottomSheet(onDismissRequest = { isAddDialogVisible = false }, sheetState = sheetState) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text("Add a Sample")
                 TextButton(
@@ -372,7 +372,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
 
     if (isLanguageSheetVisible) {
         val sheetState = rememberModalBottomSheetState()
-        ModalBottomSheet(onDismissRequest = { isLanguageSheetVisible = false }, sheetState = sheetState) {
+        AppModalBottomSheet(onDismissRequest = { isLanguageSheetVisible = false }, sheetState = sheetState) {
             Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp)) {
                 Text("What language is this recording in?")
                 for (language in enabledLanguages) {
@@ -403,7 +403,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
     if (isGenerateLanguageSheetVisible) {
         val sheetState = rememberModalBottomSheetState()
         val generateLanguages = remember { AppSettingsStore.enabledLanguagesSorted(context) }
-        ModalBottomSheet(onDismissRequest = { isGenerateLanguageSheetVisible = false }, sheetState = sheetState) {
+        AppModalBottomSheet(onDismissRequest = { isGenerateLanguageSheetVisible = false }, sheetState = sheetState) {
             Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp)) {
                 Text("What language would you like the sample in?")
                 Text(
@@ -440,7 +440,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
 
     if (isRecordLanguageSheetVisible) {
         val sheetState = rememberModalBottomSheetState()
-        ModalBottomSheet(onDismissRequest = { isRecordLanguageSheetVisible = false }, sheetState = sheetState) {
+        AppModalBottomSheet(onDismissRequest = { isRecordLanguageSheetVisible = false }, sheetState = sheetState) {
             Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp)) {
                 Text("What language will you be speaking?")
                 for (language in enabledLanguages) {

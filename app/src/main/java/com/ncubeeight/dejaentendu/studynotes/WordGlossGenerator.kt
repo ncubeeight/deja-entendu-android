@@ -1,5 +1,6 @@
 package com.ncubeeight.dejaentendu.studynotes
 
+import com.ncubeeight.dejaentendu.GenAiStatus
 import com.google.mlkit.genai.common.DownloadStatus
 import com.google.mlkit.genai.common.FeatureStatus
 import com.google.mlkit.genai.common.GenAiException
@@ -49,7 +50,7 @@ object WordGlossGenerator {
                     throw WordGlossUnavailableException("model download failed: ${outcome.e.message}")
                 }
             }
-            else -> throw WordGlossUnavailableException("model unavailable (status=$status)")
+            else -> throw WordGlossUnavailableException(GenAiStatus.unavailableMessage(status))
         }
 
         if (!model.isStructuredOutputFeatureAvailable()) {
@@ -102,7 +103,7 @@ object WordGlossGenerator {
                     throw WordGlossUnavailableException("model download failed: ${outcome.e.message}")
                 }
             }
-            else -> throw WordGlossUnavailableException("model unavailable (status=$status)")
+            else -> throw WordGlossUnavailableException(GenAiStatus.unavailableMessage(status))
         }
 
         if (!model.isStructuredOutputFeatureAvailable()) {

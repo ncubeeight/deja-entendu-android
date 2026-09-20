@@ -36,7 +36,7 @@ fun AddVocabularyWordSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
     var text by remember { mutableStateOf("") }
     val sheetState = rememberModalBottomSheetState()
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    AppModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.imePadding().padding(20.dp)) {
             Text("Add a Word")
             OutlinedTextField(

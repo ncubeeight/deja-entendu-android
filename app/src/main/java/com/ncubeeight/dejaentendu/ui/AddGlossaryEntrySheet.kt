@@ -75,7 +75,7 @@ fun AddGlossaryEntrySheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
         onSaved()
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    AppModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier.imePadding().verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),

@@ -111,7 +111,7 @@ fun VocabularyListScreen(onEntryClick: (VocabularyEntry) -> Unit) {
                         IconButton(onClick = { isSortMenuVisible = true }) {
                             Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort")
                         }
-                        DropdownMenu(expanded = isSortMenuVisible, onDismissRequest = { isSortMenuVisible = false }) {
+                        AppDropdownMenu(expanded = isSortMenuVisible, onDismissRequest = { isSortMenuVisible = false }) {
                             for (option in VocabularySort.entries) {
                                 DropdownMenuItem(
                                     text = { Text(option.label) },
