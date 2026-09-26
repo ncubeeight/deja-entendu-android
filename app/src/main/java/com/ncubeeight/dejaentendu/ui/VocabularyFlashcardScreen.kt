@@ -126,7 +126,7 @@ fun VocabularyFlashcardScreen(entry: VocabularyEntry) {
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(entry.text, fontSize = 40.sp, fontWeight = FontWeight.Bold, color = AppColors.ink)
+                Text(entry.text, fontSize = 40.sp, fontWeight = FontWeight.Bold, color = AppColors.adaptiveInk)
                 IconButton(onClick = { speak(entry.text) }, enabled = isSpeechAvailable) {
                     Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Speak")
                 }
@@ -134,7 +134,7 @@ fun VocabularyFlashcardScreen(entry: VocabularyEntry) {
             if (!isSpeechAvailable) {
                 Text(
                     "Spoken pronunciation isn't available for ${entry.language?.displayName ?: "this term"} on this device.",
-                    color = AppColors.inkSoft,
+                    color = AppColors.adaptiveInkSoft,
                 )
             }
         }
@@ -165,13 +165,13 @@ fun VocabularyFlashcardScreen(entry: VocabularyEntry) {
 
         when (val current = status) {
             is FlashcardStatus.Loading -> CircularProgressIndicator()
-            is FlashcardStatus.Failed -> Text(current.reason, color = AppColors.inkSoft)
+            is FlashcardStatus.Failed -> Text(current.reason, color = AppColors.adaptiveInkSoft)
             is FlashcardStatus.Ready -> {
                 LabeledValue("Pronunciation", current.details.pronunciation)
                 LabeledValue("Translation", current.details.translation)
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Example", color = AppColors.inkSoft)
+                        Text("Example", color = AppColors.adaptiveInkSoft)
                         IconButton(
                             onClick = { speak(current.details.exampleSentence) },
                             enabled = isSpeechAvailable,
@@ -180,7 +180,7 @@ fun VocabularyFlashcardScreen(entry: VocabularyEntry) {
                         }
                     }
                     Text(highlightedExample(current.details.exampleSentence, entry.text))
-                    Text(current.details.exampleTranslation, color = AppColors.inkSoft)
+                    Text(current.details.exampleTranslation, color = AppColors.adaptiveInkSoft)
                 }
             }
         }
@@ -190,8 +190,8 @@ fun VocabularyFlashcardScreen(entry: VocabularyEntry) {
 @Composable
 private fun LabeledValue(label: String, value: String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(label, color = AppColors.inkSoft)
-        Text(value, fontSize = 20.sp, color = AppColors.ink)
+        Text(label, color = AppColors.adaptiveInkSoft)
+        Text(value, fontSize = 20.sp, color = AppColors.adaptiveInk)
     }
 }
 

@@ -158,12 +158,12 @@ fun TranscriptionRunnerScreen(input: SampleInput, onViewFlashcard: (VocabularyEn
                 is RunnerStatus.Transcribing -> {
                     CircularProgressIndicator()
                     val label = if (input is SampleInput.Audio) "Transcribing" else "Preparing"
-                    Text("$label (${input.language.displayName})…", color = AppColors.inkSoft)
+                    Text("$label (${input.language.displayName})…", color = AppColors.adaptiveInkSoft)
                 }
                 is RunnerStatus.Transcribed -> {
                     TranscriptBlock(current.text, input.language, ::addToVocabulary, onViewFlashcard)
                     CircularProgressIndicator()
-                    Text("Generating study notes…", color = AppColors.inkSoft)
+                    Text("Generating study notes…", color = AppColors.adaptiveInkSoft)
                 }
                 is RunnerStatus.NotesReady -> {
                     TranscriptBlock(current.text, input.language, ::addToVocabulary, onViewFlashcard)
@@ -171,7 +171,7 @@ fun TranscriptionRunnerScreen(input: SampleInput, onViewFlashcard: (VocabularyEn
                 }
                 is RunnerStatus.NotesUnavailable -> {
                     TranscriptBlock(current.text, input.language, ::addToVocabulary, onViewFlashcard)
-                    Text("Study notes unavailable: ${current.reason}", color = AppColors.inkSoft)
+                    Text("Study notes unavailable: ${current.reason}", color = AppColors.adaptiveInkSoft)
                 }
                 is RunnerStatus.Failed -> Text(current.reason, color = AppColors.coral)
             }
@@ -188,8 +188,8 @@ private fun TranscriptBlock(
     onViewFlashcard: (VocabularyEntry) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Transcript", color = AppColors.ink)
-        Text("Tap a word to look it up.", color = AppColors.inkSoft)
+        Text("Transcript", color = AppColors.adaptiveInk)
+        Text("Tap a word to look it up.", color = AppColors.adaptiveInkSoft)
 
         for (sentence in TranscriptSegmentation.sentences(text, language.locale)) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -256,7 +256,7 @@ private fun TranscriptWordToken(
             modifier = Modifier.widthIn(min = 180.dp, max = 260.dp).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(word, color = AppColors.ink, fontWeight = FontWeight.Bold)
+            Text(word, color = AppColors.adaptiveInk, fontWeight = FontWeight.Bold)
 
             val entry = addedEntry
             if (entry == null) {
@@ -264,11 +264,11 @@ private fun TranscriptWordToken(
                     is GlossState.Loading -> {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             CircularProgressIndicator(modifier = Modifier.size(16.dp))
-                            Text("Looking up…", color = AppColors.inkSoft)
+                            Text("Looking up…", color = AppColors.adaptiveInkSoft)
                         }
                     }
-                    is GlossState.Ready -> Text(current.gloss, color = AppColors.inkSoft)
-                    is GlossState.Failed -> Text("Lookup unavailable", color = AppColors.inkSoft)
+                    is GlossState.Ready -> Text(current.gloss, color = AppColors.adaptiveInkSoft)
+                    is GlossState.Failed -> Text("Lookup unavailable", color = AppColors.adaptiveInkSoft)
                     null -> Unit
                 }
                 Button(
@@ -280,7 +280,7 @@ private fun TranscriptWordToken(
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = AppColors.coral)
-                    Text("Added to Vocabulary", color = AppColors.ink)
+                    Text("Added to Vocabulary", color = AppColors.adaptiveInk)
                 }
                 TextButton(onClick = {
                     isExpanded = false
@@ -296,12 +296,12 @@ private fun TranscriptWordToken(
 @Composable
 private fun StudyNotesBlock(notes: StudyNotes) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Translation", color = AppColors.ink)
-        Text(notes.englishTranslation, color = AppColors.inkSoft)
+        Text("Translation", color = AppColors.adaptiveInk)
+        Text(notes.englishTranslation, color = AppColors.adaptiveInkSoft)
 
-        Text("Key Vocabulary", color = AppColors.ink)
+        Text("Key Vocabulary", color = AppColors.adaptiveInk)
         for (word in notes.keyVocabulary) {
-            Text("• $word", color = AppColors.inkSoft)
+            Text("• $word", color = AppColors.adaptiveInkSoft)
         }
     }
 }

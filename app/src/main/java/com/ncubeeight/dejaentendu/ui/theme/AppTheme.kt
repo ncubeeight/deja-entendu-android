@@ -55,6 +55,15 @@ object AppColors {
     val homeInkSoft: Color @Composable get() = if (LocalDarkTheme.current) homeInkSoftDark else homeInkSoftLight
     val homeLine: Color @Composable get() = if (LocalDarkTheme.current) homeLineDark else homeLineLight
 
+    // Adaptive text for any screen drawn on MaterialTheme's own
+    // background/surface (Transcription, Flashcard, Live Recording, dropdown
+    // menus). Those surfaces go dark in dark mode — the dark scheme's
+    // surface is literally the same #241C16 as fixed `ink` — so fixed ink
+    // there rendered invisible black-on-black text. Use fixed ink/inkSoft
+    // only on top of the always-light pastel fills (rainbow, *Soft).
+    val adaptiveInk: Color @Composable get() = homeInk
+    val adaptiveInkSoft: Color @Composable get() = homeInkSoft
+
     val coral = Color(0xFFFF6B4A)
     val coralSoft = Color(0xFFFFE4DA)
     val teal = Color(0xFF2BBAA3)
@@ -94,13 +103,10 @@ private val DejaEntenduLightColorScheme = lightColorScheme(
     onSurface = AppColors.ink,
 )
 
-// iOS's AppTheme has no dark variant at all — Home/Vocabulary/Flashcard
-// etc. hardcode AppTheme.* colors regardless of the system's light/dark
-// setting there, so its Settings > Appearance toggle only ever affects
-// unstyled system chrome (Forms, alerts, the keyboard), never the custom
-// screens. This dark scheme mirrors that same scope of effect on Android:
-// it governs Material3's default/unstyled components, while our own
-// AppColors-styled screens stay visually identical either way, same as iOS.
+// Governs Material3's default/unstyled components and the background of
+// every screen that doesn't paint its own (everything but Home). Text on
+// those screens must use AppColors.adaptiveInk/adaptiveInkSoft, not fixed
+// ink, or it vanishes against this dark surface.
 private val DejaEntenduDarkColorScheme = darkColorScheme(
     primary = AppColors.coral,
     background = Color(0xFF1C1712),

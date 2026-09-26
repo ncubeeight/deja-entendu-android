@@ -158,12 +158,12 @@ fun LiveRecordingSheet(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            Text("Record — ${language.displayName}", color = AppColors.ink)
+            Text("Record — ${language.displayName}", color = AppColors.adaptiveInk)
 
             Text(
                 text = timeString(elapsedMillis),
                 fontSize = 48.sp,
-                color = AppColors.ink,
+                color = AppColors.adaptiveInk,
             )
 
             IconButton(
@@ -179,7 +179,7 @@ fun LiveRecordingSheet(
                 )
             }
 
-            Text(statusText, color = AppColors.inkSoft)
+            Text(statusText, color = AppColors.adaptiveInkSoft)
 
             errorMessage?.let { message ->
                 Text(message, color = MaterialTheme.colorScheme.error)
