@@ -41,6 +41,7 @@ class SampleSpeaker internal constructor(
         }
         engine.stop()
         engine.setLanguage(language.locale)
+        engine.applySpeechPace()
         setSpeakingId(id)
         val chunks = chunk(text, (TextToSpeech.getMaxSpeechInputLength() - 100).coerceAtLeast(500))
         chunks.forEachIndexed { index, part ->

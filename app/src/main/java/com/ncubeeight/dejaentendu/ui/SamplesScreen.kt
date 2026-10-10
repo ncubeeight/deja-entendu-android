@@ -550,14 +550,17 @@ private fun SampleRow(sample: AnySample, speaker: SampleSpeaker, onClick: () -> 
             trailingContent = sampleText(sample)?.let { text ->
                 {
                     val isSpeaking = speaker.speakingId == sample.id
-                    IconButton(
-                        onClick = { speaker.toggle(sample.id, text, sample.language) },
-                        enabled = isSpeaking || speaker.canSpeak(sample.language),
-                    ) {
-                        Icon(
-                            if (isSpeaking) Icons.Filled.Stop else Icons.AutoMirrored.Filled.VolumeUp,
-                            contentDescription = if (isSpeaking) "Stop speaking" else "Speak",
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = { speaker.toggle(sample.id, text, sample.language) },
+                            enabled = isSpeaking || speaker.canSpeak(sample.language),
+                        ) {
+                            Icon(
+                                if (isSpeaking) Icons.Filled.Stop else Icons.AutoMirrored.Filled.VolumeUp,
+                                contentDescription = if (isSpeaking) "Stop speaking" else "Speak",
+                            )
+                        }
+                        SpeechPaceMenu(enabled = speaker.canSpeak(sample.language))
                     }
                 }
             },
