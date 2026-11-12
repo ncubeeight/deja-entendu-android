@@ -1,5 +1,6 @@
 package com.ncubeeight.dejaentendu.ui
 
+import android.speech.tts.TextToSpeech
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
@@ -43,6 +45,7 @@ import com.ncubeeight.dejaentendu.settings.AppColorScheme
 import com.ncubeeight.dejaentendu.settings.AppFontScale
 import com.ncubeeight.dejaentendu.settings.AppSettingsState
 import com.ncubeeight.dejaentendu.settings.AppSettingsStore
+import com.ncubeeight.dejaentendu.settings.SpeechPace
 import com.ncubeeight.dejaentendu.studynotes.ConnectedDictionaryStore
 import com.ncubeeight.dejaentendu.transcription.SupportedLanguage
 
@@ -83,6 +86,9 @@ fun SettingsScreen(onCustomGlossaryClick: () -> Unit, onConnectDictionaryClick: 
         AppSettingsStore.setFontScale(context, scale)
         AppSettingsState.fontScale.value = scale
     }
+
+    val speechPace = AppSettingsState.speechPace.value
+    val previewTts = rememberTextToSpeech()
 
     fun selectColorScheme(scheme: AppColorScheme) {
         colorScheme = scheme
@@ -137,6 +143,41 @@ fun SettingsScreen(onCustomGlossaryClick: () -> Unit, onConnectDictionaryClick: 
                 }
                 Text(
                     "Makes text larger or smaller across the whole app — buttons, Home, Samples, Vocabulary, and flashcards. Applies on top of your phone's own font size.",
+                    color = onSurfaceVariant,
+                )
+            }
+
+            HorizontalDivider()
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Speech Speed", color = onSurfaceVariant)
+                FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    for (pace in SpeechPace.entries) {
+                        Row(
+                            modifier = Modifier
+                                .selectable(selected = pace == speechPace, onClick = { selectSpeechPace(context, pace) }),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = pace == speechPace, onClick = { selectSpeechPace(context, pace) })
+                            Text(pace.displayName, color = onBackground)
+                        }
+                    }
+                }
+                OutlinedButton(
+                    onClick = {
+                        previewTts?.let { engine ->
+                            engine.setLanguage(SupportedLanguage.ENGLISH.locale)
+                            engine.applySpeechPace()
+                            engine.speak("This is how fast words will be read aloud.", TextToSpeech.QUEUE_FLUSH, null, null)
+                        }
+                    },
+                    enabled = previewTts != null,
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null)
+                    Text("Preview", modifier = Modifier.padding(start = 8.dp))
+                }
+                Text(
+                    "Applies everywhere text is read aloud — Samples and Vocabulary flashcards. You can also change it from the speed icon next to any speak button.",
                     color = onSurfaceVariant,
                 )
             }

@@ -14,4 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 object AppSettingsState {
     val colorScheme = mutableStateOf(AppColorScheme.SYSTEM)
     val fontScale = mutableStateOf(AppFontScale.DEFAULT)
+
+    /** Read by every speak button and SpeechPaceMenu, so a change anywhere shows everywhere. */
+    val speechPace = mutableStateOf(SpeechPace.NORMAL)
 }

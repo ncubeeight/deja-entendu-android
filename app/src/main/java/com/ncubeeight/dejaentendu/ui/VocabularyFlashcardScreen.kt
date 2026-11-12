@@ -78,6 +78,7 @@ fun VocabularyFlashcardScreen(entry: VocabularyEntry) {
     fun speak(text: String) {
         val engine = tts ?: return
         entry.language?.let { engine.setLanguage(it.locale) }
+        engine.applySpeechPace()
         engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
     }
 
@@ -130,6 +131,7 @@ fun VocabularyFlashcardScreen(entry: VocabularyEntry) {
                 IconButton(onClick = { speak(entry.text) }, enabled = isSpeechAvailable) {
                     Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Speak")
                 }
+                SpeechPaceMenu(enabled = isSpeechAvailable)
             }
             if (!isSpeechAvailable) {
                 Text(
@@ -178,6 +180,7 @@ fun VocabularyFlashcardScreen(entry: VocabularyEntry) {
                         ) {
                             Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Speak example")
                         }
+                        SpeechPaceMenu(enabled = isSpeechAvailable)
                     }
                     Text(highlightedExample(current.details.exampleSentence, entry.text))
                     Text(current.details.exampleTranslation, color = AppColors.adaptiveInkSoft)

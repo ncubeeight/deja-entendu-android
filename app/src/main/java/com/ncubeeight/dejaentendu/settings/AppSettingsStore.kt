@@ -14,6 +14,7 @@ object AppSettingsStore {
     private const val ENABLED_LANGUAGES_KEY = "enabled_languages"
     private const val COLOR_SCHEME_KEY = "color_scheme"
     private const val FONT_SCALE_KEY = "font_scale"
+    private const val SPEECH_PACE_KEY = "speech_pace"
     private const val HAS_COMPLETED_FIRST_HOME_LAUNCH_KEY = "has_completed_first_home_launch"
     private const val DEFAULT_IMPORT_LANGUAGE_KEY = "default_import_language"
 
@@ -89,6 +90,15 @@ object AppSettingsStore {
 
     fun setFontScale(context: Context, scale: AppFontScale) {
         prefs(context).edit().putString(FONT_SCALE_KEY, scale.name).apply()
+    }
+
+    fun speechPace(context: Context): SpeechPace {
+        val raw = prefs(context).getString(SPEECH_PACE_KEY, null) ?: return SpeechPace.NORMAL
+        return SpeechPace.entries.firstOrNull { it.name == raw } ?: SpeechPace.NORMAL
+    }
+
+    fun setSpeechPace(context: Context, pace: SpeechPace) {
+        prefs(context).edit().putString(SPEECH_PACE_KEY, pace.name).apply()
     }
 
     fun hasCompletedFirstHomeLaunch(context: Context): Boolean =
