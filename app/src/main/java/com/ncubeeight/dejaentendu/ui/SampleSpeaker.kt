@@ -32,6 +32,12 @@ class SampleSpeaker internal constructor(
         return engine.isLanguageAvailable(language.locale) >= TextToSpeech.LANG_AVAILABLE
     }
 
+    /** Stops whatever is being read aloud. */
+    fun stop() {
+        tts?.stop()
+        setSpeakingId(null)
+    }
+
     fun toggle(id: String, text: String, language: SupportedLanguage) {
         val engine = tts ?: return
         if (speakingId == id) {

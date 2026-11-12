@@ -1,6 +1,28 @@
 package com.ncubeeight.dejaentendu.ui
 
 import android.Manifest
+import android.content.Intent
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Surface
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.unit.IntOffset
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -48,6 +70,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.semantics.semantics
@@ -113,6 +138,18 @@ fun TranscriptionRunnerScreen(
     var renameDraft by remember { mutableStateOf<TextFieldValue?>(null) }
     // One speaker for the page, so starting the transcript stops a word and vice versa.
     val speaker = rememberSampleSpeaker()
+
+    // Text-selection mode. The transcript normally renders as tappable word
+    // chips, which native selection can't span, so a long-press offers
+    // Select / Select All, swapping the page to one read-only selectable
+    // text field until Done (mirrors iOS 6e66a08).
+    var isSelecting by remember { mutableStateOf(false) }
+    var selection by remember { mutableStateOf(TextFieldValue("")) }
+    var didCopy by remember { mutableStateOf(false) }
+    // Where the Select / Select All menu opens, in root coordinates; null when closed.
+    var selectMenuAt by remember { mutableStateOf<Offset?>(null) }
+    var contentOrigin by remember { mutableStateOf(Offset.Zero) }
+    val scope = rememberCoroutineScope()
 
     var hasAudioPermission by remember {
         mutableStateOf(
@@ -180,6 +217,26 @@ fun TranscriptionRunnerScreen(
         return entry
     }
 
+    val currentText = when (val current = status) {
+        is RunnerStatus.Transcribed -> current.text
+        is RunnerStatus.NotesReady -> current.text
+        is RunnerStatus.NotesUnavailable -> current.text
+        else -> null
+    }
+    val currentNotes = (status as? RunnerStatus.NotesReady)?.notes
+    // Transcript / Translation / Key Vocabulary, shared by the selectable
+    // view and the shared text so the two always match.
+    val exportText = currentText?.let { exportSections(it, currentNotes) }
+
+    fun enterSelection(selectAll: Boolean) {
+        val text = exportText ?: return
+        speaker.stop()
+        selection = TextFieldValue(text, selection = if (selectAll) TextRange(0, text.length) else TextRange(0))
+        didCopy = false
+        isSelecting = true
+    }
+    val onContentLongPress: (Offset) -> Unit = { rootOffset -> if (exportText != null && !isSelecting) selectMenuAt = rootOffset }
+
     Scaffold(
         topBar = {
             TopAppBar(title = {
@@ -202,11 +259,82 @@ fun TranscriptionRunnerScreen(
                 } else {
                     Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
+            }, actions = {
+                if (exportText != null) {
+                    // Mail, Messages, Keep, Drive, etc. all come from the system share sheet.
+                    IconButton(onClick = {
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, title)
+                            putExtra(Intent.EXTRA_TEXT, "$title\nLanguage: ${input.language.displayName}\n\n$exportText")
+                        }
+                        context.startActivity(Intent.createChooser(send, "Share Sample"))
+                    }) {
+                        Icon(Icons.Filled.Share, contentDescription = "Share Sample")
+                    }
+                }
             })
         },
+        bottomBar = {
+            if (isSelecting) {
+                Surface(tonalElevation = 3.dp) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        TextButton(onClick = { isSelecting = false }) { Text("Done") }
+                        Spacer(Modifier.weight(1f))
+                        TextButton(onClick = { selection = selection.copy(selection = TextRange(0, selection.text.length)) }) { Text("Select All") }
+                        TextButton(onClick = {
+                            val range = selection.selection
+                            val copied = if (range.collapsed) selection.text else selection.text.substring(range.min, range.max)
+                            val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
+                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText(title, copied))
+                            didCopy = true
+                            scope.launch {
+                                kotlinx.coroutines.delay(1500)
+                                didCopy = false
+                            }
+                        }) {
+                            Icon(if (didCopy) Icons.Filled.Check else Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.size(6.dp))
+                            Text(if (didCopy) "Copied" else "Copy")
+                        }
+                    }
+                }
+            }
+        },
     ) { padding ->
+      Box(
+          modifier = Modifier
+              .fillMaxSize()
+              .padding(padding)
+              .onGloballyPositioned { contentOrigin = it.positionInRoot() },
+      ) {
+        if (isSelecting && exportText != null) {
+            // Read-only text field rather than SelectionContainer: it brings the
+            // native handles and Copy / Share toolbar, and lets Select All set
+            // the selection programmatically.
+            BasicTextField(
+                value = selection,
+                onValueChange = { selection = it.copy(text = selection.text) },
+                readOnly = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = AppColors.adaptiveInk),
+                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+            )
+        } else {
+        var columnCoordinates by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .onGloballyPositioned { columnCoordinates = it }
+                .pointerInput(exportText) {
+                    detectTapGestures(onLongPress = { local ->
+                        columnCoordinates?.let { onContentLongPress(it.localToRoot(local)) }
+                    })
+                }
+                .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             when (val current = status) {
@@ -217,21 +345,42 @@ fun TranscriptionRunnerScreen(
                     Text("$label (${input.language.displayName})…", color = AppColors.adaptiveInkSoft)
                 }
                 is RunnerStatus.Transcribed -> {
-                    TranscriptBlock(current.text, input.language, speaker, ::addToVocabulary, onViewFlashcard)
+                    TranscriptBlock(current.text, input.language, speaker, onContentLongPress, ::addToVocabulary, onViewFlashcard)
                     CircularProgressIndicator()
                     Text("Generating study notes…", color = AppColors.adaptiveInkSoft)
                 }
                 is RunnerStatus.NotesReady -> {
-                    TranscriptBlock(current.text, input.language, speaker, ::addToVocabulary, onViewFlashcard)
+                    TranscriptBlock(current.text, input.language, speaker, onContentLongPress, ::addToVocabulary, onViewFlashcard)
                     StudyNotesBlock(current.notes)
                 }
                 is RunnerStatus.NotesUnavailable -> {
-                    TranscriptBlock(current.text, input.language, speaker, ::addToVocabulary, onViewFlashcard)
+                    TranscriptBlock(current.text, input.language, speaker, onContentLongPress, ::addToVocabulary, onViewFlashcard)
                     Text("Study notes unavailable: ${current.reason}", color = AppColors.adaptiveInkSoft)
                 }
                 is RunnerStatus.Failed -> Text(current.reason, color = AppColors.coral)
             }
         }
+        }
+
+        // Long-press menu, opened where the press landed.
+        selectMenuAt?.let { at ->
+            val local = at - contentOrigin
+            Box(Modifier.offset { IntOffset(local.x.toInt(), local.y.toInt()) }.size(1.dp)) {
+                AppDropdownMenu(expanded = true, onDismissRequest = { selectMenuAt = null }) {
+                    DropdownMenuItem(
+                        text = { Text("Select") },
+                        leadingIcon = { Icon(Icons.Filled.TextFields, contentDescription = null) },
+                        onClick = { selectMenuAt = null; enterSelection(selectAll = false) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Select All") },
+                        leadingIcon = { Icon(Icons.Filled.SelectAll, contentDescription = null) },
+                        onClick = { selectMenuAt = null; enterSelection(selectAll = true) },
+                    )
+                }
+            }
+        }
+      }
     }
 
     val draft = renameDraft
@@ -271,6 +420,7 @@ private fun TranscriptBlock(
     text: String,
     language: SupportedLanguage,
     speaker: SampleSpeaker,
+    onLongPress: (Offset) -> Unit,
     onAddToVocabulary: (String) -> VocabularyEntry,
     onViewFlashcard: (VocabularyEntry) -> Unit,
 ) {
@@ -284,10 +434,15 @@ private fun TranscriptBlock(
         Text("Tap a word to look it up.", color = AppColors.adaptiveInkSoft)
 
         for (sentence in TranscriptSegmentation.sentences(text, language.locale)) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                for ((index, word) in TranscriptSegmentation.words(sentence, language.locale).withIndex()) {
-                    val background = AppColors.rainbow[index % AppColors.rainbow.size]
-                    TranscriptWordToken(word, sentence, language, background, speaker, onAddToVocabulary, onViewFlashcard)
+            // Mirrored for right-to-left sentences, so the first word sits at
+            // the right edge and lines wrap leftward (iOS e3c531c).
+            val direction = if (TranscriptSegmentation.isRightToLeft(sentence, language)) LayoutDirection.Rtl else LayoutDirection.Ltr
+            CompositionLocalProvider(LocalLayoutDirection provides direction) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    for ((index, word) in TranscriptSegmentation.words(sentence, language.locale).withIndex()) {
+                        val background = AppColors.rainbow[index % AppColors.rainbow.size]
+                        TranscriptWordToken(word, sentence, language, background, speaker, onLongPress, onAddToVocabulary, onViewFlashcard)
+                    }
                 }
             }
         }
@@ -295,6 +450,15 @@ private fun TranscriptBlock(
 }
 
 private const val TRANSCRIPT_UTTERANCE_ID = "transcript"
+
+/** Transcript, then Translation and Key Vocabulary when study notes exist — as plain text for selecting, copying and sharing. */
+private fun exportSections(transcript: String, notes: StudyNotes?): String = buildList {
+    add("Transcript\n${transcript.trim()}")
+    if (notes != null) {
+        add("Translation\n${notes.englishTranslation.trim()}")
+        if (notes.keyVocabulary.isNotEmpty()) add("Key Vocabulary\n" + notes.keyVocabulary.joinToString("\n") { "• $it" })
+    }
+}.joinToString("\n\n")
 
 /**
  * Speak/stop toggle plus the speech-pace menu, disabled when the device has
@@ -329,6 +493,7 @@ private sealed interface GlossState {
  * doesn't itself commit it to the list. Mirrors the shape of iOS's
  * TranscriptWordToken popover, extended with the gloss preview.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TranscriptWordToken(
     word: String,
@@ -336,6 +501,7 @@ private fun TranscriptWordToken(
     language: SupportedLanguage,
     background: Color,
     speaker: SampleSpeaker,
+    onLongPress: (Offset) -> Unit,
     onAddToVocabulary: (String) -> VocabularyEntry,
     onViewFlashcard: (VocabularyEntry) -> Unit,
 ) {
@@ -343,13 +509,18 @@ private fun TranscriptWordToken(
     var glossState by remember { mutableStateOf<GlossState?>(null) }
     var addedEntry by remember { mutableStateOf<VocabularyEntry?>(null) }
     val scope = rememberCoroutineScope()
+    var tokenCoordinates by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
 
     Text(
         word,
         color = AppColors.ink,
         modifier = Modifier
             .background(background, RoundedCornerShape(5.dp))
-            .clickable {
+            .onGloballyPositioned { tokenCoordinates = it }
+            .combinedClickable(
+                // Long-pressing a word offers Select / Select All like the rest of the page.
+                onLongClick = { tokenCoordinates?.let { onLongPress(it.localToRoot(Offset(0f, it.size.height.toFloat()))) } },
+            ) {
                 isExpanded = true
                 if (glossState == null) {
                     glossState = GlossState.Loading
