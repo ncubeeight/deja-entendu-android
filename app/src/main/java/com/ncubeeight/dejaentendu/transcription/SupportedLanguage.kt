@@ -61,6 +61,10 @@ class SupportedLanguage private constructor(
 ) {
     val isCustom: Boolean get() = name.startsWith(CustomLanguageStore.PREFIX)
 
+    /** True for languages written right to left (Arabic, Hebrew, Urdu, ...), going by the locale. */
+    val isRightToLeft: Boolean
+        get() = android.text.TextUtils.getLayoutDirectionFromLocale(locale) == android.view.View.LAYOUT_DIRECTION_RTL
+
     override fun equals(other: Any?) = other is SupportedLanguage && other.name == name
     override fun hashCode() = name.hashCode()
     override fun toString() = name
