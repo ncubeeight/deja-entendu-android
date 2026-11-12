@@ -60,6 +60,12 @@ private fun pronunciationSystemHint(language: SupportedLanguage): String = when 
     SupportedLanguage.CHINESE_TRADITIONAL, SupportedLanguage.CHINESE_SIMPLIFIED ->
         "Mandarin pinyin readings spelled out in plain English syllables (e.g. " +
             "你好 → 'nee-how'). Never Japanese on'yomi/kun'yomi readings."
+    // Same problem as Japanese from the other direction: the model's
+    // default for hanzi is Mandarin (mirrors iOS cfc723d).
+    SupportedLanguage.CANTONESE_TRADITIONAL, SupportedLanguage.CANTONESE_SIMPLIFIED ->
+        "Cantonese readings spelled out in plain English syllables (e.g. " +
+            "你好 → 'nay-HOH', 唔該 → 'm-GOY'). Never Mandarin pinyin readings " +
+            "like 'nee-how'."
     SupportedLanguage.KOREAN ->
         "Revised Romanization of Korean, spelled out in plain English syllables " +
             "(e.g. 안녕하세요 → 'an-nyeong-ha-se-yo')."
@@ -105,7 +111,7 @@ private fun pronunciationSystemHint(language: SupportedLanguage): String = when 
     SupportedLanguage.FRENCH ->
         "A plain-English phonetic approximation of French pronunciation (e.g. " +
             "'Bonjour' → 'boh-ZHOOR')."
-    SupportedLanguage.SPANISH ->
+    SupportedLanguage.SPANISH, SupportedLanguage.SPANISH_LATIN_AMERICA ->
         "A plain-English phonetic approximation of Spanish pronunciation (e.g. " +
             "'Gracias' → 'GRAH-see-ahs')."
     SupportedLanguage.ITALIAN ->
@@ -190,7 +196,7 @@ private fun pronunciationSystemHint(language: SupportedLanguage): String = when 
  * examples become relevant.
  */
 private fun pronunciationSystemGeneralRules(): String = """
-    - Chinese (hanzi): Mandarin pinyin.
+    - Chinese (hanzi): Mandarin pinyin (or Cantonese readings if the term is clearly colloquial Cantonese).
     - Japanese (kanji/kana): Hepburn romaji (on'yomi/kun'yomi) — never pinyin, even though kanji and hanzi look alike.
     - Korean (hangul): Revised Romanization.
     - Devanagari-script languages (Hindi, Marathi): standard phonetic transliteration.
@@ -201,6 +207,19 @@ private fun pronunciationSystemGeneralRules(): String = """
     - Greek, Hebrew, Russian, Ukrainian, and other non-Latin-script languages: a plain-English phonetic transliteration.
     - Latin-script languages (French, German, Spanish, Italian, Portuguese, Danish, Dutch, Norwegian, Swedish, Turkish, Vietnamese, Czech, English, Indonesian, Swahili, Tagalog, Yoruba, Quechua, ...): a plain-English phonetic approximation of that language's actual pronunciation — not an English reading of the spelling.
 """.trimIndent()
+
+/**
+ * Extra steering for the example sentence where the model's default is the
+ * wrong variety. Cantonese: Gemini Nano otherwise writes Standard Written
+ * Chinese (i.e. Mandarin grammar), mirroring iOS cfc723d.
+ */
+private fun exampleSentenceGuidance(language: SupportedLanguage): String = when (language) {
+    SupportedLanguage.CANTONESE_TRADITIONAL, SupportedLanguage.CANTONESE_SIMPLIFIED ->
+        "\n\nThis is Cantonese, not Mandarin. Write the example sentence in " +
+            "colloquial spoken Cantonese as a native speaker would text it " +
+            "(using 係, 唔, 嘅, 咗, 喺 where natural), not Standard Written Chinese."
+    else -> ""
+}
 
 object FlashcardGenerator {
 
@@ -255,7 +274,7 @@ object FlashcardGenerator {
             books..." would be wrong — write an actual ${language.displayName}
             sentence like "私は毎日図書館に行きます" instead). Only
             exampleTranslation may be in English.
-            """.trimIndent()
+            """.trimIndent() + exampleSentenceGuidance(language)
         } else {
             """
             You are a compact language-learning dictionary. Given a word or

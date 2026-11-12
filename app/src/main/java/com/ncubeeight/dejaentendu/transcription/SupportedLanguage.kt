@@ -88,10 +88,27 @@ class SupportedLanguage private constructor(
         Locale.Builder().setLanguage("zh").setScript("Hans").setRegion("CN").build(),
         Locale.forLanguageTag("cmn-Hans-CN"),
         OcrScript.CHINESE,)
+    // Cantonese as spoken in Hong Kong (Traditional) vs Guangdong
+    // (Simplified), mirroring iOS cfc723d. The locale drives the TTS voice
+    // (yue-HK on Google's engine) and ICU word segmentation, which treats
+    // it as Chinese. ML Kit GenAI Speech Recognition documents no Cantonese
+    // locale (checked 2026-11-12), so audio import isn't offered; the
+    // Chinese OCR recognizer reads both scripts.
+    val CANTONESE_TRADITIONAL = SupportedLanguage("CANTONESE_TRADITIONAL", "Cantonese (Traditional)",
+        Locale.forLanguageTag("yue-Hant-HK"), null, OcrScript.CHINESE)
+    val CANTONESE_SIMPLIFIED = SupportedLanguage("CANTONESE_SIMPLIFIED", "Cantonese (Simplified)",
+        Locale.forLanguageTag("yue-Hans-CN"), null, OcrScript.CHINESE)
     val JAPANESE = SupportedLanguage("JAPANESE", "Japanese", Locale.JAPAN, Locale.forLanguageTag("ja-JP"), OcrScript.JAPANESE)
     val GERMAN = SupportedLanguage("GERMAN", "German", Locale.GERMANY, Locale.forLanguageTag("de-DE"), OcrScript.LATIN)
     val FRENCH = SupportedLanguage("FRENCH", "French", Locale.FRANCE, Locale.forLanguageTag("fr-FR"), OcrScript.LATIN)
-    val SPANISH = SupportedLanguage("SPANISH", "Spanish", Locale.forLanguageTag("es-ES"), Locale.forLanguageTag("es-ES"), OcrScript.LATIN)
+    // Spain vs Latin America, split so each gets its own speech voice
+    // (mirrors iOS c1e657d). SPANISH keeps its original name so saved
+    // Samples, terms and settings still decode. Mexico stands in for Latin
+    // America, as on iOS: es-419 has no TTS voice of its own. ML Kit GenAI
+    // Speech Recognition documents only es-ES for Spanish (checked
+    // 2026-11-12), so Latin American audio is transcribed with that model.
+    val SPANISH = SupportedLanguage("SPANISH", "Spanish (Spain)", Locale.forLanguageTag("es-ES"), Locale.forLanguageTag("es-ES"), OcrScript.LATIN)
+    val SPANISH_LATIN_AMERICA = SupportedLanguage("SPANISH_LATIN_AMERICA", "Spanish (Latin America)", Locale.forLanguageTag("es-MX"), Locale.forLanguageTag("es-ES"), OcrScript.LATIN)
     val THAI = SupportedLanguage("THAI", "Thai", Locale.forLanguageTag("th-TH"), Locale.forLanguageTag("th-TH"), null)
     val KOREAN = SupportedLanguage("KOREAN", "Korean", Locale.KOREA, Locale.forLanguageTag("ko-KR"), OcrScript.KOREAN)
     val VIETNAMESE = SupportedLanguage("VIETNAMESE", "Vietnamese", Locale.forLanguageTag("vi-VN"), Locale.forLanguageTag("vi-VN"), OcrScript.LATIN)
@@ -153,7 +170,7 @@ class SupportedLanguage private constructor(
 
         /** Built-in languages only, in declaration order. */
         val builtIns: List<SupportedLanguage> by lazy {
-            listOf(CHINESE_TRADITIONAL, CHINESE_SIMPLIFIED, JAPANESE, GERMAN, FRENCH, SPANISH, THAI, KOREAN, VIETNAMESE, HINDI, TAMIL, GUJARATI, ITALIAN, PORTUGUESE, DANISH, DUTCH, NORWEGIAN, SWEDISH, TURKISH, ENGLISH, BENGALI, PUNJABI, URDU, GREEK, HEBREW, RUSSIAN, UKRAINIAN, CZECH, INDONESIAN, MARATHI, SWAHILI, TAGALOG, YORUBA, QUECHUA, TELUGU, KANNADA, AMHARIC, FINNISH, ESTONIAN, POLISH, ARABIC)
+            listOf(CHINESE_TRADITIONAL, CHINESE_SIMPLIFIED, CANTONESE_TRADITIONAL, CANTONESE_SIMPLIFIED, JAPANESE, GERMAN, FRENCH, SPANISH, SPANISH_LATIN_AMERICA, THAI, KOREAN, VIETNAMESE, HINDI, TAMIL, GUJARATI, ITALIAN, PORTUGUESE, DANISH, DUTCH, NORWEGIAN, SWEDISH, TURKISH, ENGLISH, BENGALI, PUNJABI, URDU, GREEK, HEBREW, RUSSIAN, UKRAINIAN, CZECH, INDONESIAN, MARATHI, SWAHILI, TAGALOG, YORUBA, QUECHUA, TELUGU, KANNADA, AMHARIC, FINNISH, ESTONIAN, POLISH, ARABIC)
         }
 
         /** Built-ins plus any the user added via a connected dictionary — read fresh so a new one shows up everywhere immediately. */
