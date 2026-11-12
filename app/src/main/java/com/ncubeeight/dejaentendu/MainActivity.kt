@@ -33,6 +33,7 @@ class MainActivity : ComponentActivity() {
         CustomLanguageStore.init(this)
         AppSettingsState.fontScale.value = AppSettingsStore.fontScale(this)
         AppSettingsState.speechPace.value = AppSettingsStore.speechPace(this)
+        com.ncubeeight.dejaentendu.samples.SampleTitleStore.init(this)
         setContent {
             val context = LocalContext.current
             LaunchedEffect(Unit) {

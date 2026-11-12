@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ncubeeight.dejaentendu.audio.ImportedRecordingStore
 import com.ncubeeight.dejaentendu.samples.AnySample
+import com.ncubeeight.dejaentendu.samples.SampleTitleStore
 import com.ncubeeight.dejaentendu.samples.ImportedImageSampleStore
 import com.ncubeeight.dejaentendu.samples.ImportedTextSampleStore
 import com.ncubeeight.dejaentendu.samples.id
@@ -126,6 +127,7 @@ fun HomeScreen(
         .sortedByDescending { it.importedAtEpochMillis }
 
     fun deleteSample(sample: AnySample) {
+        SampleTitleStore.setTitle(context, sample.id, null)
         when (sample) {
             is AnySample.Audio -> {
                 audioRecordings = audioRecordings.filterNot { it.id == sample.recording.id }

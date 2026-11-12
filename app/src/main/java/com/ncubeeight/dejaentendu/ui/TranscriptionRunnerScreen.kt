@@ -20,10 +20,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -37,7 +45,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
+import com.ncubeeight.dejaentendu.audio.displayTitle
+import com.ncubeeight.dejaentendu.samples.SampleTitleStore
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -77,10 +93,26 @@ private sealed interface RunnerStatus {
  * the spot without committing it to their list, so "Add to Vocabulary" is
  * a deliberate action inside that popup, not the tap itself.
  */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun TranscriptionRunnerScreen(input: SampleInput, onViewFlashcard: (VocabularyEntry) -> Unit) {
+fun TranscriptionRunnerScreen(
+    input: SampleInput,
+    /** The saved sample this page shows, so it can be renamed. Null for a page with nothing saved behind it. */
+    sampleId: String? = null,
+    onViewFlashcard: (VocabularyEntry) -> Unit,
+) {
     val context = LocalContext.current
+
+    // The name the Samples list shows before any rename (AnySample.defaultTitle).
+    val defaultTitle = when (input) {
+        is SampleInput.Audio -> input.recording.displayTitle
+        is SampleInput.ReadyText -> input.title
+    }
+    // Reads SampleTitleStore's snapshot state, so a rename redraws this.
+    val title = sampleId?.let { SampleTitleStore.title(it) } ?: defaultTitle
+    var renameDraft by remember { mutableStateOf<TextFieldValue?>(null) }
+    // One speaker for the page, so starting the transcript stops a word and vice versa.
+    val speaker = rememberSampleSpeaker()
 
     var hasAudioPermission by remember {
         mutableStateOf(
@@ -148,7 +180,31 @@ fun TranscriptionRunnerScreen(input: SampleInput, onViewFlashcard: (VocabularyEn
         return entry
     }
 
-    Scaffold { padding ->
+    Scaffold(
+        topBar = {
+            TopAppBar(title = {
+                if (sampleId != null) {
+                    // The title with a pencil beside it, so someone with dozens
+                    // of "Scanned Photo" samples can give each a memorable name.
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .clickable(onClickLabel = "Rename Sample") {
+                                // Opens with the current name selected, so typing replaces it.
+                                renameDraft = TextFieldValue(title, selection = TextRange(0, title.length))
+                            }
+                            .semantics(mergeDescendants = true) {},
+                    ) {
+                        Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        Icon(Icons.Filled.Edit, contentDescription = "Rename Sample", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    }
+                } else {
+                    Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            })
+        },
+    ) { padding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -161,21 +217,51 @@ fun TranscriptionRunnerScreen(input: SampleInput, onViewFlashcard: (VocabularyEn
                     Text("$label (${input.language.displayName})…", color = AppColors.adaptiveInkSoft)
                 }
                 is RunnerStatus.Transcribed -> {
-                    TranscriptBlock(current.text, input.language, ::addToVocabulary, onViewFlashcard)
+                    TranscriptBlock(current.text, input.language, speaker, ::addToVocabulary, onViewFlashcard)
                     CircularProgressIndicator()
                     Text("Generating study notes…", color = AppColors.adaptiveInkSoft)
                 }
                 is RunnerStatus.NotesReady -> {
-                    TranscriptBlock(current.text, input.language, ::addToVocabulary, onViewFlashcard)
+                    TranscriptBlock(current.text, input.language, speaker, ::addToVocabulary, onViewFlashcard)
                     StudyNotesBlock(current.notes)
                 }
                 is RunnerStatus.NotesUnavailable -> {
-                    TranscriptBlock(current.text, input.language, ::addToVocabulary, onViewFlashcard)
+                    TranscriptBlock(current.text, input.language, speaker, ::addToVocabulary, onViewFlashcard)
                     Text("Study notes unavailable: ${current.reason}", color = AppColors.adaptiveInkSoft)
                 }
                 is RunnerStatus.Failed -> Text(current.reason, color = AppColors.coral)
             }
         }
+    }
+
+    val draft = renameDraft
+    if (draft != null && sampleId != null) {
+        val focusRequester = remember { FocusRequester() }
+        LaunchedEffect(Unit) { focusRequester.requestFocus() }
+        AppAlertDialog(
+            onDismissRequest = { renameDraft = null },
+            title = { Text("Rename Sample") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = draft,
+                        onValueChange = { renameDraft = it },
+                        label = { Text("Name") },
+                        singleLine = true,
+                        modifier = Modifier.focusRequester(focusRequester),
+                    )
+                    Text("Leave it empty to go back to \"$defaultTitle\".", color = AppColors.adaptiveInkSoft)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    // Saving the default name (or nothing) clears the custom one.
+                    SampleTitleStore.setTitle(context, sampleId, draft.text, defaultTitle)
+                    renameDraft = null
+                }) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = { renameDraft = null }) { Text("Cancel") } },
+        )
     }
 }
 
@@ -184,21 +270,48 @@ fun TranscriptionRunnerScreen(input: SampleInput, onViewFlashcard: (VocabularyEn
 private fun TranscriptBlock(
     text: String,
     language: SupportedLanguage,
+    speaker: SampleSpeaker,
     onAddToVocabulary: (String) -> VocabularyEntry,
     onViewFlashcard: (VocabularyEntry) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Transcript", color = AppColors.adaptiveInk)
+        // Read-aloud for the whole transcript, with the pace menu beside it,
+        // mirroring iOS's speak button on the Sample page (9a3e5cf).
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Transcript", color = AppColors.adaptiveInk, modifier = Modifier.weight(1f))
+            SpeakButton(speaker, TRANSCRIPT_UTTERANCE_ID, text, language)
+        }
         Text("Tap a word to look it up.", color = AppColors.adaptiveInkSoft)
 
         for (sentence in TranscriptSegmentation.sentences(text, language.locale)) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 for ((index, word) in TranscriptSegmentation.words(sentence, language.locale).withIndex()) {
                     val background = AppColors.rainbow[index % AppColors.rainbow.size]
-                    TranscriptWordToken(word, sentence, language, background, onAddToVocabulary, onViewFlashcard)
+                    TranscriptWordToken(word, sentence, language, background, speaker, onAddToVocabulary, onViewFlashcard)
                 }
             }
         }
+    }
+}
+
+private const val TRANSCRIPT_UTTERANCE_ID = "transcript"
+
+/**
+ * Speak/stop toggle plus the speech-pace menu, disabled when the device has
+ * no voice for [language] — same controls as a Samples list row.
+ */
+@Composable
+private fun SpeakButton(speaker: SampleSpeaker, id: String, text: String, language: SupportedLanguage) {
+    val isSpeaking = speaker.speakingId == id
+    val canSpeak = speaker.canSpeak(language)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = { speaker.toggle(id, text, language) }, enabled = isSpeaking || canSpeak) {
+            Icon(
+                if (isSpeaking) Icons.Filled.Stop else Icons.AutoMirrored.Filled.VolumeUp,
+                contentDescription = if (isSpeaking) "Stop speaking" else "Speak",
+            )
+        }
+        SpeechPaceMenu(enabled = canSpeak)
     }
 }
 
@@ -222,6 +335,7 @@ private fun TranscriptWordToken(
     sentence: String,
     language: SupportedLanguage,
     background: Color,
+    speaker: SampleSpeaker,
     onAddToVocabulary: (String) -> VocabularyEntry,
     onViewFlashcard: (VocabularyEntry) -> Unit,
 ) {
@@ -256,7 +370,10 @@ private fun TranscriptWordToken(
             modifier = Modifier.widthIn(min = 180.dp, max = 260.dp).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(word, color = AppColors.adaptiveInk, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(word, color = AppColors.adaptiveInk, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
+                SpeakButton(speaker, "word:$word", word, language)
+            }
 
             val entry = addedEntry
             if (entry == null) {

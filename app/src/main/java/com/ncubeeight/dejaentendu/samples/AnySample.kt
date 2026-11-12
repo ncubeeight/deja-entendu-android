@@ -30,7 +30,12 @@ val AnySample.kind: SampleKind
         is AnySample.Image -> SampleKind.IMAGE
     }
 
+/** The user's own name for this sample (see SampleTitleStore), or the default one. */
 val AnySample.title: String
+    get() = SampleTitleStore.title(id) ?: defaultTitle
+
+/** The name a sample gets before the user renames it. */
+val AnySample.defaultTitle: String
     get() = when (this) {
         is AnySample.Audio -> recording.displayTitle
         is AnySample.Text -> sample.title
@@ -66,9 +71,9 @@ val AnySample.subtitle: String
 val AnySample.runnerInput: SampleInput
     get() = when (this) {
         is AnySample.Audio -> SampleInput.Audio(recording)
-        is AnySample.Text -> SampleInput.ReadyText(title = sample.title, text = sample.body, language = sample.language)
+        is AnySample.Text -> SampleInput.ReadyText(title = defaultTitle, text = sample.body, language = sample.language)
         is AnySample.Image -> SampleInput.ReadyText(
-            title = sample.originalFilename,
+            title = defaultTitle,
             text = sample.recognizedText,
             language = sample.language,
         )

@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -41,6 +42,8 @@ import com.ncubeeight.dejaentendu.studynotes.GlossaryStore
 import com.ncubeeight.dejaentendu.studynotes.VocabularyEntry
 import com.ncubeeight.dejaentendu.studynotes.VocabularyStore
 import com.ncubeeight.dejaentendu.ui.theme.AppColors
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private sealed interface FlashcardStatus {
     data object Loading : FlashcardStatus
@@ -146,10 +149,17 @@ fun VocabularyFlashcardScreen(entry: VocabularyEntry) {
         // should gate. Also the main reason this screen stays useful when
         // on-device generation fails or is unavailable: a matching custom
         // entry means there's still something real to show.
-        val customDefinition = remember(entry.text, entry.language) {
-            GlossaryStore.definition(context, entry.text, entry.language)
+        // Looked up off the main thread: the first lookup after launch or a
+        // glossary save builds GlossaryStore's index (one full read of
+        // glossary.json, slow for a large connected dictionary). Its own
+        // effect so it isn't held up behind flashcard generation.
+        val customDefinition by produceState<String?>(null, entry.text, entry.language) {
+            value = withContext(Dispatchers.IO) {
+                GlossaryStore.definition(context, entry.text, entry.language)
+            }
         }
-        if (customDefinition != null) {
+        val definition = customDefinition
+        if (definition != null) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier
@@ -161,7 +171,7 @@ fun VocabularyFlashcardScreen(entry: VocabularyEntry) {
                     Icon(Icons.Filled.Bookmark, contentDescription = null, tint = AppColors.inkSoft)
                     Text("Your Definition", color = AppColors.inkSoft, fontSize = 13.sp)
                 }
-                Text(customDefinition, fontSize = 20.sp, color = AppColors.ink)
+                Text(definition, fontSize = 20.sp, color = AppColors.ink)
             }
         }
 
