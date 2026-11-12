@@ -21,6 +21,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -29,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -108,6 +111,8 @@ fun TranscriptionRunnerScreen(
     // Reads SampleTitleStore's snapshot state, so a rename redraws this.
     val title = sampleId?.let { SampleTitleStore.title(it) } ?: defaultTitle
     var renameDraft by remember { mutableStateOf<TextFieldValue?>(null) }
+    // One speaker for the page, so starting the transcript stops a word and vice versa.
+    val speaker = rememberSampleSpeaker()
 
     var hasAudioPermission by remember {
         mutableStateOf(
@@ -212,16 +217,16 @@ fun TranscriptionRunnerScreen(
                     Text("$label (${input.language.displayName})…", color = AppColors.adaptiveInkSoft)
                 }
                 is RunnerStatus.Transcribed -> {
-                    TranscriptBlock(current.text, input.language, ::addToVocabulary, onViewFlashcard)
+                    TranscriptBlock(current.text, input.language, speaker, ::addToVocabulary, onViewFlashcard)
                     CircularProgressIndicator()
                     Text("Generating study notes…", color = AppColors.adaptiveInkSoft)
                 }
                 is RunnerStatus.NotesReady -> {
-                    TranscriptBlock(current.text, input.language, ::addToVocabulary, onViewFlashcard)
+                    TranscriptBlock(current.text, input.language, speaker, ::addToVocabulary, onViewFlashcard)
                     StudyNotesBlock(current.notes)
                 }
                 is RunnerStatus.NotesUnavailable -> {
-                    TranscriptBlock(current.text, input.language, ::addToVocabulary, onViewFlashcard)
+                    TranscriptBlock(current.text, input.language, speaker, ::addToVocabulary, onViewFlashcard)
                     Text("Study notes unavailable: ${current.reason}", color = AppColors.adaptiveInkSoft)
                 }
                 is RunnerStatus.Failed -> Text(current.reason, color = AppColors.coral)
@@ -265,21 +270,48 @@ fun TranscriptionRunnerScreen(
 private fun TranscriptBlock(
     text: String,
     language: SupportedLanguage,
+    speaker: SampleSpeaker,
     onAddToVocabulary: (String) -> VocabularyEntry,
     onViewFlashcard: (VocabularyEntry) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Transcript", color = AppColors.adaptiveInk)
+        // Read-aloud for the whole transcript, with the pace menu beside it,
+        // mirroring iOS's speak button on the Sample page (9a3e5cf).
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Transcript", color = AppColors.adaptiveInk, modifier = Modifier.weight(1f))
+            SpeakButton(speaker, TRANSCRIPT_UTTERANCE_ID, text, language)
+        }
         Text("Tap a word to look it up.", color = AppColors.adaptiveInkSoft)
 
         for (sentence in TranscriptSegmentation.sentences(text, language.locale)) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 for ((index, word) in TranscriptSegmentation.words(sentence, language.locale).withIndex()) {
                     val background = AppColors.rainbow[index % AppColors.rainbow.size]
-                    TranscriptWordToken(word, sentence, language, background, onAddToVocabulary, onViewFlashcard)
+                    TranscriptWordToken(word, sentence, language, background, speaker, onAddToVocabulary, onViewFlashcard)
                 }
             }
         }
+    }
+}
+
+private const val TRANSCRIPT_UTTERANCE_ID = "transcript"
+
+/**
+ * Speak/stop toggle plus the speech-pace menu, disabled when the device has
+ * no voice for [language] — same controls as a Samples list row.
+ */
+@Composable
+private fun SpeakButton(speaker: SampleSpeaker, id: String, text: String, language: SupportedLanguage) {
+    val isSpeaking = speaker.speakingId == id
+    val canSpeak = speaker.canSpeak(language)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = { speaker.toggle(id, text, language) }, enabled = isSpeaking || canSpeak) {
+            Icon(
+                if (isSpeaking) Icons.Filled.Stop else Icons.AutoMirrored.Filled.VolumeUp,
+                contentDescription = if (isSpeaking) "Stop speaking" else "Speak",
+            )
+        }
+        SpeechPaceMenu(enabled = canSpeak)
     }
 }
 
@@ -303,6 +335,7 @@ private fun TranscriptWordToken(
     sentence: String,
     language: SupportedLanguage,
     background: Color,
+    speaker: SampleSpeaker,
     onAddToVocabulary: (String) -> VocabularyEntry,
     onViewFlashcard: (VocabularyEntry) -> Unit,
 ) {
@@ -337,7 +370,10 @@ private fun TranscriptWordToken(
             modifier = Modifier.widthIn(min = 180.dp, max = 260.dp).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(word, color = AppColors.adaptiveInk, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(word, color = AppColors.adaptiveInk, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
+                SpeakButton(speaker, "word:$word", word, language)
+            }
 
             val entry = addedEntry
             if (entry == null) {
