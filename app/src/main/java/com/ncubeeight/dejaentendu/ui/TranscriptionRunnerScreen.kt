@@ -20,9 +20,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -38,6 +43,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
+import com.ncubeeight.dejaentendu.audio.displayTitle
+import com.ncubeeight.dejaentendu.samples.SampleTitleStore
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -77,10 +86,24 @@ private sealed interface RunnerStatus {
  * the spot without committing it to their list, so "Add to Vocabulary" is
  * a deliberate action inside that popup, not the tap itself.
  */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun TranscriptionRunnerScreen(input: SampleInput, onViewFlashcard: (VocabularyEntry) -> Unit) {
+fun TranscriptionRunnerScreen(
+    input: SampleInput,
+    /** The saved sample this page shows, so it can be renamed. Null for a page with nothing saved behind it. */
+    sampleId: String? = null,
+    onViewFlashcard: (VocabularyEntry) -> Unit,
+) {
     val context = LocalContext.current
+
+    // The name the Samples list shows before any rename (AnySample.defaultTitle).
+    val defaultTitle = when (input) {
+        is SampleInput.Audio -> input.recording.displayTitle
+        is SampleInput.ReadyText -> input.title
+    }
+    // Reads SampleTitleStore's snapshot state, so a rename redraws this.
+    val title = sampleId?.let { SampleTitleStore.title(it) } ?: defaultTitle
+    var renameDraft by remember { mutableStateOf<String?>(null) }
 
     var hasAudioPermission by remember {
         mutableStateOf(
@@ -148,7 +171,28 @@ fun TranscriptionRunnerScreen(input: SampleInput, onViewFlashcard: (VocabularyEn
         return entry
     }
 
-    Scaffold { padding ->
+    Scaffold(
+        topBar = {
+            TopAppBar(title = {
+                if (sampleId != null) {
+                    // The title with a pencil beside it, so someone with dozens
+                    // of "Scanned Photo" samples can give each a memorable name.
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .clickable(onClickLabel = "Rename Sample") { renameDraft = title }
+                            .semantics(mergeDescendants = true) {},
+                    ) {
+                        Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        Icon(Icons.Filled.Edit, contentDescription = "Rename Sample", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    }
+                } else {
+                    Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            })
+        },
+    ) { padding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -176,6 +220,33 @@ fun TranscriptionRunnerScreen(input: SampleInput, onViewFlashcard: (VocabularyEn
                 is RunnerStatus.Failed -> Text(current.reason, color = AppColors.coral)
             }
         }
+    }
+
+    val draft = renameDraft
+    if (draft != null && sampleId != null) {
+        AppAlertDialog(
+            onDismissRequest = { renameDraft = null },
+            title = { Text("Rename Sample") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = draft,
+                        onValueChange = { renameDraft = it },
+                        label = { Text("Name") },
+                        singleLine = true,
+                    )
+                    Text("Leave it empty to go back to \"$defaultTitle\".", color = AppColors.adaptiveInkSoft)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    // Saving the default name (or nothing) clears the custom one.
+                    SampleTitleStore.setTitle(context, sampleId, draft, defaultTitle)
+                    renameDraft = null
+                }) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = { renameDraft = null }) { Text("Cancel") } },
+        )
     }
 }
 

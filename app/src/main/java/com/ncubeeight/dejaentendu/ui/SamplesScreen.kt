@@ -65,6 +65,7 @@ import com.ncubeeight.dejaentendu.audio.AudioIngestion
 import com.ncubeeight.dejaentendu.audio.ImportedRecording
 import com.ncubeeight.dejaentendu.audio.ImportedRecordingStore
 import com.ncubeeight.dejaentendu.samples.AnySample
+import com.ncubeeight.dejaentendu.samples.SampleTitleStore
 import com.ncubeeight.dejaentendu.samples.ImportedImageSampleStore
 import com.ncubeeight.dejaentendu.samples.ImportedTextSample
 import com.ncubeeight.dejaentendu.samples.ImportedTextSampleStore
@@ -192,6 +193,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
     }
 
     fun delete(sample: AnySample) {
+        SampleTitleStore.setTitle(context, sample.id, null)
         when (sample) {
             is AnySample.Audio -> {
                 audioRecordings = audioRecordings.filterNot { it.id == sample.recording.id }

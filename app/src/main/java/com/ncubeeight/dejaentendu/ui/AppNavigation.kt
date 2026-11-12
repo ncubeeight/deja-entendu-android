@@ -164,7 +164,7 @@ fun AppNavigation() {
                 val context = LocalContext.current
                 val input = loadSampleInput(context, route.kind, route.sampleId)
                 if (input != null) {
-                    TranscriptionRunnerScreen(input, onViewFlashcard = { navController.navigate(Screen.Flashcard(it.id)) })
+                    TranscriptionRunnerScreen(input, sampleId = route.sampleId, onViewFlashcard = { navController.navigate(Screen.Flashcard(it.id)) })
                 }
             }
         }
