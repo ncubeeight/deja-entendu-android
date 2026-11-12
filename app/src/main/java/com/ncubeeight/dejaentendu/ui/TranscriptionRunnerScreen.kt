@@ -42,7 +42,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.ncubeeight.dejaentendu.audio.displayTitle
@@ -103,7 +107,7 @@ fun TranscriptionRunnerScreen(
     }
     // Reads SampleTitleStore's snapshot state, so a rename redraws this.
     val title = sampleId?.let { SampleTitleStore.title(it) } ?: defaultTitle
-    var renameDraft by remember { mutableStateOf<String?>(null) }
+    var renameDraft by remember { mutableStateOf<TextFieldValue?>(null) }
 
     var hasAudioPermission by remember {
         mutableStateOf(
@@ -181,7 +185,10 @@ fun TranscriptionRunnerScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier
-                            .clickable(onClickLabel = "Rename Sample") { renameDraft = title }
+                            .clickable(onClickLabel = "Rename Sample") {
+                                // Opens with the current name selected, so typing replaces it.
+                                renameDraft = TextFieldValue(title, selection = TextRange(0, title.length))
+                            }
                             .semantics(mergeDescendants = true) {},
                     ) {
                         Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
@@ -224,6 +231,8 @@ fun TranscriptionRunnerScreen(
 
     val draft = renameDraft
     if (draft != null && sampleId != null) {
+        val focusRequester = remember { FocusRequester() }
+        LaunchedEffect(Unit) { focusRequester.requestFocus() }
         AppAlertDialog(
             onDismissRequest = { renameDraft = null },
             title = { Text("Rename Sample") },
@@ -234,6 +243,7 @@ fun TranscriptionRunnerScreen(
                         onValueChange = { renameDraft = it },
                         label = { Text("Name") },
                         singleLine = true,
+                        modifier = Modifier.focusRequester(focusRequester),
                     )
                     Text("Leave it empty to go back to \"$defaultTitle\".", color = AppColors.adaptiveInkSoft)
                 }
@@ -241,7 +251,7 @@ fun TranscriptionRunnerScreen(
             confirmButton = {
                 TextButton(onClick = {
                     // Saving the default name (or nothing) clears the custom one.
-                    SampleTitleStore.setTitle(context, sampleId, draft, defaultTitle)
+                    SampleTitleStore.setTitle(context, sampleId, draft.text, defaultTitle)
                     renameDraft = null
                 }) { Text("Save") }
             },
