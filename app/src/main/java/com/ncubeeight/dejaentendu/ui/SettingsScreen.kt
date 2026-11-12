@@ -1,5 +1,7 @@
 package com.ncubeeight.dejaentendu.ui
 
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.produceState
 import android.speech.tts.TextToSpeech
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -270,7 +272,40 @@ fun SettingsScreen(onCustomGlossaryClick: () -> Unit, onConnectDictionaryClick: 
                     "Turn off languages you don't use to simplify the picker. At least one must stay on. A language added by connecting a dictionary appears here too — turning it off hides it from the picker and pauses that dictionary's definitions without disconnecting it.",
                     color = onSurfaceVariant,
                 )
+
+                AboutSection(onBackground, onSurfaceVariant)
             }
         }
+    }
+}
+
+/**
+ * App version and the on-device model AICore is serving. Gemini Nano is
+ * updated by Google Play on its own schedule (nano-v3 vs nano-v4, full vs
+ * fast), so testers' reports can only be matched to a model if they can
+ * see which one they had.
+ */
+@Composable
+private fun AboutSection(onBackground: androidx.compose.ui.graphics.Color, onSurfaceVariant: androidx.compose.ui.graphics.Color) {
+    val context = LocalContext.current
+    val versionText = remember {
+        try {
+            val info = context.packageManager.getPackageInfo(context.packageName, 0)
+            "${info.versionName} (${androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(info)})"
+        } catch (e: Exception) {
+            "Unknown"
+        }
+    }
+    val modelName by produceState("Checking…") {
+        value = try {
+            com.google.mlkit.genai.prompt.Generation.getClient().getBaseModelName().ifBlank { "Not available" }
+        } catch (e: Exception) {
+            "Not available"
+        }
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("About", color = onBackground, fontWeight = FontWeight.SemiBold)
+        Text("Version $versionText", color = onSurfaceVariant)
+        Text("On-device model: $modelName", color = onSurfaceVariant)
     }
 }
