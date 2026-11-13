@@ -1,5 +1,7 @@
 package com.ncubeeight.dejaentendu.ui
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -156,14 +158,7 @@ private fun UsageGuidelines() {
         )
 
         Text(
-            "We hope you find delight in studying new vocabulary with Gemini and Déjà Entendu. The Android developer community will be expanding new language capabilities over time as more communities build open source libraries.",
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-
-        Text("Supplemental Notes", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
-
-        Text(
-            "Please make sure on your Android device that you have enabled Gemini Nano to operate in your Settings and System. This app uses the large language model capabilities of Gemini tools for the parsing, interpretation and speech samples generated locally on your device. The app does not make outbound calls to the web-based Gemini service. So all translation, voice synthesis and flashcard generation stays locally on your device without needing to call out to the web. This means that it can be used without having a cellular signal or on Airplane Mode. If you download additional languages or dictionaries to your device please make sure to have wifi enabled when downloading those dictionaries from Android as some Android language packages can be large.",
+            "Please make sure on your Android device that you have enabled Gemini to operate in your Settings. This app uses the large language model (LLM) capabilities of Gemini tools for the generation of example sentences and speech samples locally on your device. The app does not make outbound calls to the web-based Gemini service. So all translation, voice synthesis and flashcard generation stays locally on your device without needing to call out to the web. This means that it can be used without having a cellular signal and even while the device is in Airplane Mode. If you download additional languages or dictionaries to your device please make sure to have Wi-Fi enabled when downloading those dictionaries as some Android language packages can be large.",
             color = MaterialTheme.colorScheme.onBackground,
         )
 
@@ -176,6 +171,30 @@ private fun UsageGuidelines() {
             "Note that Android doesn’t have voice synthesis capability for all languages at present. But this may expand over time as more languages are enabled.",
             color = MaterialTheme.colorScheme.onBackground,
         )
+
+        SocialLinks()
+    }
+}
+
+private val socialLinks = listOf(
+    "Facebook" to "https://www.facebook.com/p/D%C3%A9j%C3%A0-Entendu-61594895031068/",
+    "Bluesky" to "https://bsky.app/profile/dejaentendustudy.bsky.social",
+    "Instagram" to "https://www.instagram.com/dejaentendustudy/",
+)
+
+/** The app's social channels, each opening in the browser or its app. */
+@Composable
+private fun SocialLinks() {
+    val uriHandler = LocalUriHandler.current
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        for ((name, url) in socialLinks) {
+            TextButton(
+                onClick = { runCatching { uriHandler.openUri(url) } },
+                contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+            ) {
+                Text(name, fontWeight = FontWeight.SemiBold)
+            }
+        }
     }
 }
 

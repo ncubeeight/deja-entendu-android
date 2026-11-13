@@ -54,7 +54,8 @@ fun ImageImportSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
     // Only languages ML Kit Text Recognition v2 has a script recognizer
     // for are offered here — OCR coverage doesn't line up with speech
     // coverage (e.g. Norwegian has OCR but no speech recognition).
-    val enabledLanguages = remember { AppSettingsStore.photoImportLanguages(context) }
+    var enabledLanguages by remember { mutableStateOf(AppSettingsStore.photoImportLanguages(context)) }
+    var isManageLanguagesVisible by remember { mutableStateOf(false) }
     var language by remember { mutableStateOf(AppSettingsStore.preferredDefaultLanguage(context, enabledLanguages)) }
     var isProcessing by remember { mutableStateOf(false) }
     var ingestedSample by remember { mutableStateOf<ImportedImageSample?>(null) }
@@ -107,6 +108,9 @@ fun ImageImportSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
                     )
                     Text(option.displayName)
                 }
+            }
+            if (ingestedSample == null) {
+                ManageLanguagesButton(onClick = { isManageLanguagesVisible = true }, modifier = Modifier.padding(top = 4.dp))
             }
 
             OutlinedButton(
@@ -166,6 +170,14 @@ fun ImageImportSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
                 }
             }
         }
+    }
+
+    if (isManageLanguagesVisible) {
+        ManageLanguagesSheet(onDismiss = {
+            isManageLanguagesVisible = false
+            enabledLanguages = AppSettingsStore.photoImportLanguages(context)
+            if (language !in enabledLanguages) language = AppSettingsStore.preferredDefaultLanguage(context, enabledLanguages)
+        })
     }
 }
 

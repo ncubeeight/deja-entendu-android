@@ -152,6 +152,18 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
         mutableStateOf(AppSettingsStore.audioImportLanguages(context))
     }
     var pendingLanguage by remember { mutableStateOf(enabledLanguages.first()) }
+    var generateLanguages by remember { mutableStateOf(AppSettingsStore.enabledLanguagesSorted(context)) }
+    var isManageLanguagesVisible by remember { mutableStateOf(false) }
+
+    // After "Add or Remove Languages": reload each picker's list, and move any
+    // selection whose language was just turned off to a valid one.
+    fun refreshLanguages() {
+        enabledLanguages = AppSettingsStore.audioImportLanguages(context)
+        generateLanguages = AppSettingsStore.enabledLanguagesSorted(context)
+        if (pendingLanguage !in enabledLanguages) pendingLanguage = AppSettingsStore.preferredDefaultLanguage(context, enabledLanguages)
+        if (pendingRecordLanguage !in enabledLanguages) pendingRecordLanguage = AppSettingsStore.preferredDefaultLanguage(context, enabledLanguages)
+        if (pendingGenerateLanguage !in generateLanguages) pendingGenerateLanguage = AppSettingsStore.preferredDefaultLanguage(context, generateLanguages)
+    }
 
     OnResume {
         // Reloaded every time this tab appears — otherwise a deletion made
@@ -160,6 +172,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
         textSamples = ImportedTextSampleStore.load(context)
         imageSamples = ImportedImageSampleStore.load(context)
         enabledLanguages = AppSettingsStore.audioImportLanguages(context)
+        generateLanguages = AppSettingsStore.enabledLanguagesSorted(context)
     }
 
     val allSamples = audioRecordings.map(AnySample::Audio) + textSamples.map(AnySample::Text) + imageSamples.map(AnySample::Image)
@@ -392,6 +405,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
                         Text(language.displayName)
                     }
                 }
+                ManageLanguagesButton(onClick = { isManageLanguagesVisible = true }, modifier = Modifier.padding(top = 4.dp))
                 Button(
                     onClick = {
                         isLanguageSheetVisible = false
@@ -407,7 +421,6 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
 
     if (isGenerateLanguageSheetVisible) {
         val sheetState = rememberModalBottomSheetState()
-        val generateLanguages = remember { AppSettingsStore.enabledLanguagesSorted(context) }
         AppModalBottomSheet(onDismissRequest = { isGenerateLanguageSheetVisible = false }, sheetState = sheetState) {
             Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp)) {
                 Text("What language would you like the sample in?")
@@ -430,6 +443,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
                         Text(language.displayName)
                     }
                 }
+                ManageLanguagesButton(onClick = { isManageLanguagesVisible = true }, modifier = Modifier.padding(top = 4.dp))
                 Button(
                     onClick = {
                         isGenerateLanguageSheetVisible = false
@@ -441,6 +455,13 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
                 }
             }
         }
+    }
+
+    if (isManageLanguagesVisible) {
+        ManageLanguagesSheet(onDismiss = {
+            isManageLanguagesVisible = false
+            refreshLanguages()
+        })
     }
 
     if (isRecordLanguageSheetVisible) {
@@ -463,6 +484,7 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
                         Text(language.displayName)
                     }
                 }
+                ManageLanguagesButton(onClick = { isManageLanguagesVisible = true }, modifier = Modifier.padding(top = 4.dp))
                 Button(
                     onClick = {
                         isRecordLanguageSheetVisible = false

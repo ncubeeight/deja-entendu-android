@@ -58,7 +58,8 @@ fun TextImportSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
     val scope = rememberCoroutineScope()
     // Typed text needs neither speech recognition nor OCR, so every
     // enabled language is offered here, unlike audio/photo import.
-    val enabledLanguages = remember { AppSettingsStore.enabledLanguagesSorted(context) }
+    var enabledLanguages by remember { mutableStateOf(AppSettingsStore.enabledLanguagesSorted(context)) }
+    var isManageLanguagesVisible by remember { mutableStateOf(false) }
     var body by remember { mutableStateOf("") }
     var language by remember { mutableStateOf(AppSettingsStore.preferredDefaultLanguage(context, enabledLanguages)) }
     var isImportingFile by remember { mutableStateOf(false) }
@@ -131,6 +132,7 @@ fun TextImportSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
                     Text(option.displayName)
                 }
             }
+            ManageLanguagesButton(onClick = { isManageLanguagesVisible = true }, modifier = Modifier.padding(top = 4.dp))
             Column(modifier = Modifier.padding(top = 12.dp)) {
                 Button(
                     onClick = {
@@ -158,5 +160,14 @@ fun TextImportSheet(onDismiss: () -> Unit, onSaved: () -> Unit) {
                 }
             }
         }
+    }
+
+    if (isManageLanguagesVisible) {
+        ManageLanguagesSheet(onDismiss = {
+            isManageLanguagesVisible = false
+            // A language turned off there can't stay selected here.
+            enabledLanguages = AppSettingsStore.enabledLanguagesSorted(context)
+            if (language !in enabledLanguages) language = AppSettingsStore.preferredDefaultLanguage(context, enabledLanguages)
+        })
     }
 }

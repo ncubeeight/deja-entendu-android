@@ -56,9 +56,7 @@ import com.ncubeeight.dejaentendu.transcription.SupportedLanguage
 @Composable
 fun SettingsScreen(onCustomGlossaryClick: () -> Unit, onConnectDictionaryClick: () -> Unit) {
     val context = LocalContext.current
-    var enabledLanguages by remember { mutableStateOf(AppSettingsStore.enabledLanguages(context)) }
     var colorScheme by remember { mutableStateOf(AppSettingsStore.colorScheme(context)) }
-    var languageSearchText by remember { mutableStateOf("") }
     val connectedDictionaries = remember { ConnectedDictionaryStore.load(context) }
     // This screen (unlike Home/Vocabulary/Flashcard) doesn't hardcode
     // AppColors on top of a hardcoded AppColors.background — it follows
@@ -66,21 +64,6 @@ fun SettingsScreen(onCustomGlossaryClick: () -> Unit, onConnectDictionaryClick: 
     // semantic colors too, or it goes dark-on-dark under the dark scheme.
     val onBackground = MaterialTheme.colorScheme.onBackground
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
-
-    val filteredLanguages = remember(languageSearchText) {
-        val sorted = SupportedLanguage.entries.sortedBy { it.displayName }
-        if (languageSearchText.isBlank()) sorted
-        else sorted.filter { it.displayName.contains(languageSearchText, ignoreCase = true) }
-    }
-
-    fun setLanguageEnabled(language: SupportedLanguage, isOn: Boolean) {
-        val updated = enabledLanguages.toMutableSet()
-        if (isOn) updated.add(language) else updated.remove(language)
-        // Never let the picker go empty — same guard as iOS's SettingsView.
-        if (updated.isEmpty()) return
-        enabledLanguages = updated
-        AppSettingsStore.setEnabledLanguages(context, updated)
-    }
 
     val fontScale = AppSettingsState.fontScale.value
 
@@ -238,43 +221,9 @@ fun SettingsScreen(onCustomGlossaryClick: () -> Unit, onConnectDictionaryClick: 
 
             HorizontalDivider()
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Languages shown on import", color = onSurfaceVariant)
-                OutlinedTextField(
-                    value = languageSearchText,
-                    onValueChange = { languageSearchText = it },
-                    placeholder = { Text("Search Languages") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                )
-                if (filteredLanguages.isEmpty()) {
-                    Text("No languages match \"$languageSearchText\".", color = onSurfaceVariant)
-                } else {
-                    for (language in filteredLanguages) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(language.displayName, color = onBackground)
-                                if (connectedDictionaries.any { it.language == language }) {
-                                    Text("Connected dictionary", color = onSurfaceVariant, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                                }
-                            }
-                            Switch(
-                                checked = language in enabledLanguages,
-                                onCheckedChange = { setLanguageEnabled(language, it) },
-                            )
-                        }
-                    }
-                }
-                Text(
-                    "Turn off languages you don't use to simplify the picker. At least one must stay on. A language added by connecting a dictionary appears here too — turning it off hides it from the picker and pauses that dictionary's definitions without disconnecting it.",
-                    color = onSurfaceVariant,
-                )
+            LanguageTogglesSection()
 
-                AboutSection(onBackground, onSurfaceVariant)
-            }
+            AboutSection(onBackground, onSurfaceVariant)
         }
     }
 }
