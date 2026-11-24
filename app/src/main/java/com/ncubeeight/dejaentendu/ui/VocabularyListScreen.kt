@@ -25,11 +25,8 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -169,38 +166,13 @@ fun VocabularyListScreen(onEntryClick: (VocabularyEntry) -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VocabularyRow(entry: VocabularyEntry, onEntryClick: (VocabularyEntry) -> Unit, onDelete: (VocabularyEntry) -> Unit) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                onDelete(entry)
-                true
-            } else {
-                false
-            }
-        },
-    )
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = false,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.error)
-                    .padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterEnd,
-            ) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Color.White)
-            }
-        },
-    ) {
+    SwipeToRevealDelete(onDelete = { onDelete(entry) }) { isRevealed, close ->
         ListItem(
             headlineContent = { Text(entry.text) },
             supportingContent = { Text(formatDate(entry.addedAtEpochMillis)) },
-            modifier = Modifier.clickable { onEntryClick(entry) },
+            modifier = Modifier.clickable { if (isRevealed) close() else onEntryClick(entry) },
         )
     }
 }

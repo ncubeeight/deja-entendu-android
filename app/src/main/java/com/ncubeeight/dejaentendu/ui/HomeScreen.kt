@@ -22,17 +22,14 @@ import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -304,47 +301,33 @@ private fun ContinueStudyingSection(
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 for (sample in samples.take(3)) {
-                    SampleRow(sample, onSampleClick, onDelete)
+                    // Keyed by sample so each row's swipe state follows its own
+                    // sample. Without it, deleting one row left the next row
+                    // sliding into that slot inheriting its "already swiped
+                    // away" state (a blank row) and its stale delete target.
+                    key(sample.id) {
+                        SampleRow(sample, onSampleClick, onDelete)
+                    }
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** A Home row; swipe left to reveal the trash button (see [SwipeToRevealDelete]). */
 @Composable
 private fun SampleRow(sample: AnySample, onSampleClick: (AnySample) -> Unit, onDelete: (AnySample) -> Unit) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                onDelete(sample)
-                true
-            } else {
-                false
-            }
-        },
-    )
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = false,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.error, RoundedCornerShape(18.dp))
-                    .padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterEnd,
-            ) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Color.White)
-            }
-        },
-    ) {
+    SwipeToRevealDelete(
+        onDelete = { onDelete(sample) },
+        buttonShape = CardSwipeButtonShape,
+        buttonGap = 8.dp,
+    ) { isRevealed, close ->
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(AppColors.homeSurface, RoundedCornerShape(18.dp))
                 .border(1.dp, AppColors.homeLine, RoundedCornerShape(18.dp))
-                .clickable { onSampleClick(sample) }
+                .clickable { if (isRevealed) close() else onSampleClick(sample) }
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

@@ -36,8 +36,8 @@ android {
         // install fine and just see those features reported unavailable.
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.2.0-beta2"
+        versionCode = 6
+        versionName = "1.2.0-beta3"
     }
 
     signingConfigs {

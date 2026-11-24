@@ -43,13 +43,10 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -530,34 +527,9 @@ fun SamplesScreen(onSampleClick: (AnySample) -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SampleRow(sample: AnySample, speaker: SampleSpeaker, onClick: () -> Unit, onDelete: () -> Unit) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                onDelete()
-                true
-            } else {
-                false
-            }
-        },
-    )
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = false,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.error)
-                    .padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterEnd,
-            ) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Color.White)
-            }
-        },
-    ) {
+    SwipeToRevealDelete(onDelete = onDelete) { isRevealed, close ->
         ListItem(
             headlineContent = { Text(sample.title) },
             supportingContent = { Text(sample.subtitle) },
@@ -588,7 +560,7 @@ private fun SampleRow(sample: AnySample, speaker: SampleSpeaker, onClick: () -> 
                     }
                 }
             },
-            modifier = Modifier.clickable(onClick = onClick),
+            modifier = Modifier.clickable { if (isRevealed) close() else onClick() },
         )
     }
 }
