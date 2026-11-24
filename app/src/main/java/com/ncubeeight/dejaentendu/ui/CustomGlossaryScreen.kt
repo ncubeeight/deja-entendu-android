@@ -22,12 +22,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -222,26 +219,13 @@ private fun DictionaryRow(
     onClick: () -> Unit,
     onDisconnectRequest: () -> Unit,
 ) {
-    // Swiping asks for confirmation rather than disconnecting outright (it
-    // deletes tens of thousands of terms), so the row always snaps back.
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) onDisconnectRequest()
-            false
-        },
-    )
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = false,
-        backgroundContent = {
-            Box(
-                modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.error).padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterEnd,
-            ) {
-                Icon(Icons.Filled.Delete, contentDescription = "Disconnect", tint = Color.White)
-            }
-        },
-    ) {
+    // The bin asks for confirmation rather than disconnecting outright (it
+    // deletes tens of thousands of terms), and the row closes behind it.
+    SwipeToRevealDelete(
+        onDelete = onDisconnectRequest,
+        deleteLabel = "Disconnect",
+        closeAfterDelete = true,
+    ) { isRevealed, close ->
         ListItem(
             headlineContent = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -259,7 +243,7 @@ private fun DictionaryRow(
             },
             supportingContent = { Text("${dictionary.fileName} · $termCount terms", maxLines = 1, overflow = TextOverflow.Ellipsis) },
             trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null) },
-            modifier = Modifier.clickable(onClick = onClick),
+            modifier = Modifier.clickable { if (isRevealed) close() else onClick() },
         )
     }
 }
